@@ -1,0 +1,29 @@
+El vendedor tiene un ID, que la lonja utilizará para dar el dinero por los lotes vendidos
+
+Importante definir que atentes vamos a tener, con que roles, y que interacción hay entre ellos
+
+Precio de reserva: Límite de precio al que puede bajar una subasta
+
+Podriamos decir que hay tres roles (Comprador -RC-, Vendedor -RV- y Lonja -RL-), pero hay interacciones
+que se pueden subdividir:
+    - Rol de receptor de ventas (interacción Vendedor-Lonja) -RRV-. Un vendedor registra una venta.
+    - Rol de admisión de vendedores (interacción Vendedor-Lonja) -RAV-. Se registra un vendedor en la Lonja.
+    ...
+
+
+VENDEDOR:
+
+    Protocolos:         Comportamiento:             Roles abstractos:           Agente:
+        - Depósito          Rellenar nosotros           - Vendedor (RV) AV          - AgenteVendedor
+        - Registro                                      - Admisión (RAV) AL         - AgenteLonja
+        - Cobro                                         ...                         - AgenteComprador
+        ...
+
+    ¿Que protocolo FIPA encaja con cada intercambio (protocolo)?
+    Definir que comportamiento va a tener cada rol ante todas las situaciones (p.e. rechazo de registro)
+    Asociar Roles Abstractos con Agentes
+    No tiene mucho sentido añadir más agentes, todos los roles se deben representar en los agentes existentes
+
+El objetico es definir el escenario, los agentes, sus roles, y los intercambios (0-10). Hay mejoras adicionales (Sube la nota):
+    - Nuevo agente Barco Pesquero.
+    - Cada comprador tiene una lista de pescados que quiere comprar (lista de objetivos).
