@@ -42,6 +42,7 @@ public class BookSellerAgent extends Agent {
 			fe.printStackTrace();
 		}
 		
+		// Add the behaviours
 		addBehaviour(new OfferRequestsServer());
 		addBehaviour(new PurchaseOrdersServer());
 	}
