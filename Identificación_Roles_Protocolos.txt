@@ -1,0 +1,45 @@
+AGENTES:
+    - Vendedor -> RV
+    - Comprador -> RC
+    - Lonja -> RRV, RAV, RGV, RRC, RGC, RS, RD
+
+ROLES:
+    - Rol Vendedor (RV)
+    - Rol encargado de Recibir las Ventas (RRV) *
+    - Rol encargado de Admisión de Vendedores (RAV)
+    - Rol Gestor de Ventas (RGV) *
+
+    - Rol Comprador (RC)
+    - Rol Receptor de Compradores (RRC)*
+    - Rol Gestor de Compras (RGC) *
+    - Rol Subasta (RS) *
+    - Rol Director de lonja (RD)
+
+    * Trabajador de la lonja, son inicializados por RD
+
+PROTOCOLOS QUE IMPLICAN AL VENDEDOR:
+    - Depósito de capturas a vender (protocolo-deposito) --> RV > RRV
+    - Registro del vendedor (protocolo-registro-vendedor) --> RV > RAV
+    - Recepción del pago por las ventas realizadas (protocolo-cobro) --> RGV > RV
+
+        Nota: En todo caso, también debería contemplarse la
+        acción por parte del RV de ignorar intentos de pago por parte del agente
+        con RGV para que sea el agente con RV el que decida cuando dejar a
+        cero su cuenta en la lonja retirando todos los fondos.
+
+PROTOCOLOS QUE IMPLICAN AL COMPRADOR:
+    - Admisión del RC en la ¿subasta? (protocolo-admisión-comprador) --> RC > RRC
+    - Apertura de crédito (protocolo-apertura-crédito) --> RC > RGC
+    - Protocolo de retirada de artículos (protocolo-retirada-compras) --> RC > RGC
+    - Protocolo de subasta (protocolo-subasta) --> ¿RRV? > RS > RC
+    ¿- Protocolo pujar en la subasta (protocolo-pujar) --> RS > RC?
+
+RELACIONES PROTOCOLOS-FIPA:
+    - (protocolo-deposito) --> fipa-request
+    - (protocolo-registro-vendedor) --> fipa-request
+    - (protocolo-cobro) --> fipa-request-when
+
+    - (protocolo-admisión-comprador) --> fipa-request
+    - (protocolo-apertura-crédito) --> fipa-request
+    - (protocolo-retirada-compras) --> fipa-propose
+    - (protocolo-subasta) --> ¿?
