@@ -18,8 +18,8 @@ ROLES:
     * Trabajador de la lonja, son inicializados por RD
 
 PROTOCOLOS QUE IMPLICAN AL VENDEDOR:
-    - Depósito de capturas a vender (protocolo-deposito) --> RV > RRV
-    - Registro del vendedor (protocolo-registro-vendedor) --> RV > RAV
+    X Registro del vendedor (protocolo-registro-vendedor) --> RV > RAV
+    X Depósito de capturas a vender (protocolo-deposito) --> RV > RRV
     - Recepción del pago por las ventas realizadas (protocolo-cobro) --> RGV > RV
 
         Nota: En todo caso, también debería contemplarse la

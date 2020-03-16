@@ -61,6 +61,8 @@ public class AgenteVendedor extends Agent {
 
 	public void nuevaMercancia(String title, int cantidad) {
 		System.out.println("Nuevo paquete de mercancia con " + cantidad + "kg de " + title);
+		
+		addBehaviour(new DepositoDeCaptura(title, cantidad));
 	}
 
 	/*
@@ -83,24 +85,23 @@ public class AgenteVendedor extends Agent {
 				req.setReplyWith("req" + System.currentTimeMillis()); // Unique value
 
 				myAgent.send(req);
-				// Prepare the template to get proposals
+				// Prepare the template
 				mt = MessageTemplate.and(MessageTemplate.MatchConversationId("registro-vendedor"),
 						MessageTemplate.MatchInReplyTo(req.getReplyWith()));
 				step = 1;
 				break;
 			case 1:
-				// Receive all proposals/refusals from seller agents
 				ACLMessage reply = myAgent.receive(mt);
 				if (reply != null) {
 					// Reply received
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Registro exitoso
 						System.out.println("Registrado con exito");
-						step = 2;
 					} else {
 						// Fallo en el registro
 						System.out.println(reply.getContent());
 					}
+					step = 2;
 
 				} else {
 					block();
@@ -117,4 +118,70 @@ public class AgenteVendedor extends Agent {
 
 	}
 	// End of inner class RequestRegistro
+	
+	
+	/*
+	 * Clase privada que se encarga del deposito de capturas, le manda un mensaje tipo
+	 * request y el RRV le responde si se acepta el deposito o no.
+	 */
+	private class DepositoDeCaptura extends Behaviour {
+
+		private MessageTemplate mt; // The template to receive replies
+		private int step = 0;
+
+		private String title;
+		private int cantidad;
+		
+		public DepositoDeCaptura(String title, int cantidad) {
+			this.title = title;
+			this.cantidad = cantidad;
+		}
+		
+		@Override
+		public void action() {
+			switch (step) {
+			case 0:
+				// Enviar request al agente lonja con rol RAV
+				ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
+
+				req.addReceiver(lonjaAgent);
+				req.setConversationId("deposito-captura");
+				req.setContent(title + "," + cantidad); 
+				req.setReplyWith("dep" + System.currentTimeMillis()); // Unique value
+
+				myAgent.send(req);
+				// Prepare the template to get proposals
+				mt = MessageTemplate.and(MessageTemplate.MatchConversationId("deposito-captura"),
+						MessageTemplate.MatchInReplyTo(req.getReplyWith()));
+				step = 1;
+				break;
+			case 1:
+				ACLMessage reply = myAgent.receive(mt);
+				if (reply != null) {
+					// Reply received
+					if (reply.getPerformative() == ACLMessage.INFORM) {
+						// Deposito de capturas exitoso
+						System.out.println("Deposito de capturas a vender exitoso");
+					} else {
+						// Fallo en el deposito de capturas
+						System.out.println(reply.getContent());
+					}
+					step = 2;
+
+				} else {
+					block();
+				}
+				break;
+			}
+
+		}
+
+		@Override
+		public boolean done() {
+			return step == 2;
+		}
+		
+	}
+	// End of inner class Deposito de Capturas
+
 }

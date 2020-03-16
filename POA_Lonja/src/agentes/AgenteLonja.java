@@ -1,6 +1,7 @@
 package agentes;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -16,6 +17,7 @@ import jade.lang.acl.MessageTemplate;
 public class AgenteLonja extends Agent {
 	// The list of know seller agents
 	private ArrayList<AID> sellerAgents;
+	private Hashtable<String, Integer> captures;
 
 	// Put agent initializations here
 	@Override
@@ -23,6 +25,7 @@ public class AgenteLonja extends Agent {
 		System.out.println("Soy el agente lonja " + this.getName());
 
 		sellerAgents = new ArrayList<AID>();
+		captures = new Hashtable<String, Integer>();
 
 		// Register the book-selling service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -39,6 +42,8 @@ public class AgenteLonja extends Agent {
 
 		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistroVendedor());
+		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de capturas del RV
+		addBehaviour(new RequestDepositoCaptura());
 	}
 
 	@Override
@@ -88,5 +93,43 @@ public class AgenteLonja extends Agent {
 		}
 	}
 	// End of inner class RequestRegistroVendedor
+	
+	/*
+	 * Clase privada que se encarga de recibir los mensajes tipo request del vendedor
+	 * para hacer un deposito de una captura en la lonja. En caso de que el vendedor aun no este registrado,
+	 * se le registrara, esta operación no se podrá hacer. De esta comunicación se encarga el RRV.
+	 */
+	private class RequestDepositoCaptura extends CyclicBehaviour {
+		public void action() {
+			MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+			ACLMessage msg = myAgent.receive(mt);
+			AID sender;
+			if (msg != null) {
+				// Request Message received. Process it.
+				ACLMessage reply = msg.createReply();
+				String[] content = msg.getContent().split(",");
+				String title = content[0];
+				int cantidad = Integer.parseInt(content[1]);
+				
+				sender = msg.getSender();
+
+				if (sellerAgents.contains(sender)) {
+					// Seller is registred
+					captures.put(title, cantidad);
+					reply.setPerformative(ACLMessage.INFORM);
+				} else {
+					// Seller isnt registered
+					reply.setPerformative(ACLMessage.REFUSE);
+					reply.setContent("Tienes que estar registrado para hacer un deposito");
+				}
+
+				myAgent.send(reply);
+			} else {
+				block();
+			}
+		}
+	}
+	// End of inner class RequestDepositoCaptura
+
 
 }
