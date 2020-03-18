@@ -1,4 +1,4 @@
-package agentes;
+package agents;
 
 import jade.core.Agent;
 

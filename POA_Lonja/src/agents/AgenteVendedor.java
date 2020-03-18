@@ -1,4 +1,4 @@
-package agentes;
+package agents;
 
 import gui.GuiComprador;
 import jade.core.AID;

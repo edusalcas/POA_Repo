@@ -16,7 +16,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import agentes.AgenteVendedor;
+import agents.AgenteVendedor;
 
 @SuppressWarnings("serial")
 public class GuiComprador extends JFrame {
