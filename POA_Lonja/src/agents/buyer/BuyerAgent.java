@@ -3,15 +3,34 @@ package agents.buyer;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 
 import org.yaml.snakeyaml.Yaml;
 
 import agents.POAAgent;
+import agents.seller.Lot;
+import jade.core.AID;
+import jade.core.behaviours.Behaviour;
+import jade.core.behaviours.OneShotBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPANames;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+import jade.proto.AchieveREInitiator;
 
 public class BuyerAgent extends POAAgent {
 		
 
 	private static final long serialVersionUID = 1L;
+	
+	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME);
+	
+	private float budget;
+	
+	private ArrayList<Lot> lots;
 
 	public void setup() {
 		super.setup();
@@ -22,7 +41,7 @@ public class BuyerAgent extends POAAgent {
 			BuyerAgentConfig config = initAgentFromConfigFile(configFile);
 			
 			if(config != null) {
-				
+				init(config);
 			} else {
 				doDelete();
 			}
@@ -44,5 +63,63 @@ public class BuyerAgent extends POAAgent {
 			e.printStackTrace();
 		}
 		return config;
+	}
+	
+	private void init(BuyerAgentConfig config) {
+		System.out.println("Soy el agente comprador "+this.getName());
+		
+		// Registramos el agente comprador en las páginas amarillas
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("comprador");
+		sd.setName("JADE-Lonja");
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+		
+		//Introducimos los valores de configuración en nuestro agente
+		this.budget = config.getBudget();
+		
+		//Añadimos los Behaviours
+		
+		
+		//Apertura de crédito
+		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		request.addReceiver(lonjaAgent);
+		request.setContent(Float.toString(budget));
+		request.setConversationId("apertura-credito");
+		addBehaviour(new AchieveREInitiator(this, request) {
+			@Override
+			protected void handleInform(ACLMessage inform) {
+				if(inform.getContent() == "OK") {
+				
+				}
+			}
+			
+			
+		});
+		
+		
+	}
+	
+	private class AperturaCredito extends OneShotBehaviour {
+
+		@Override
+		public void action() {
+			ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+			request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+			request.addReceiver(lonjaAgent);
+			request.setContent(Float.toString(budget));
+			request.setConversationId("apertura-credito");
+			
+		}
+
+		
+		
 	}
 }
