@@ -1,6 +1,6 @@
 package agents;
 
-import gui.GuiComprador;
+import gui.GuiVendedor;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
@@ -13,10 +13,10 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
 @SuppressWarnings("serial")
-public class AgenteVendedor extends Agent {
+public class SellerAgent_Old extends Agent {
 
 	// The GUI by means of which the user can add books in the catalogue
-	private GuiComprador myGui;
+//	private GuiVendedor myGui;
 
 	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME);
 
@@ -26,8 +26,8 @@ public class AgenteVendedor extends Agent {
 		System.out.println("Soy el agente vendedor " + this.getName());
 
 		// Create and show the GUI
-		myGui = new GuiComprador(this);
-		myGui.showGui();
+//		myGui = new GuiVendedor(this);
+//		myGui.showGui();
 
 		// Register the book-selling service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();

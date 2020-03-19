@@ -3,14 +3,16 @@ package agents.seller;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 
 import org.yaml.snakeyaml.Yaml;
 
 import agents.POAAgent;
-import agents.AgenteVendedor.DepositoDeCaptura;
-import agents.AgenteVendedor.RequestRegistro;
-import gui.GuiComprador;
+
+import gui.GuiVendedor;
+import jade.core.AID;
 import jade.core.behaviours.Behaviour;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -18,41 +20,24 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
-public class SellerAgent extends POAAgent  {
-		
+public class SellerAgent extends POAAgent {
+
 	private static final long serialVersionUID = 1L;
-	// The GUI by means of which the user can add books in the catalogue
-	private GuiComprador myGui;
-	
+	private GuiVendedor myGui;
+
+	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME);
+	private ArrayList<Lot> lots;
+
 	public void setup() {
 		super.setup();
-		
+
 		Object[] args = getArguments();
 		if (args != null && args.length == 1) {
 			String configFile = (String) args[0];
 			SellerAgentConfig config = initAgentFromConfigFile(configFile);
-			
-			if(config != null) {
-				System.out.println("Soy el agente vendedor " + this.getName());
 
-				// Create and show the GUI
-				myGui = new GuiComprador(this);
-				myGui.showGui();
-
-				// Register the book-selling service in the yellow pages
-				DFAgentDescription dfd = new DFAgentDescription();
-				dfd.setName(getAID());
-				ServiceDescription sd = new ServiceDescription();
-				sd.setType("vendedor");
-				sd.setName("JADE-Lonja");
-				dfd.addServices(sd);
-				try {
-					DFService.register(this, dfd);
-				} catch (FIPAException fe) {
-					fe.printStackTrace();
-				}
-
-				addBehaviour(new RequestRegistro());
+			if (config != null) {
+				init(config);
 			} else {
 				doDelete();
 			}
@@ -61,7 +46,43 @@ public class SellerAgent extends POAAgent  {
 			doDelete();
 		}
 	}
-	
+
+	private void init(SellerAgentConfig config) {
+
+		System.out.println("Soy el agente vendedor " + this.getName());
+
+		// Create and show the GUI
+		myGui = new GuiVendedor(this);
+		myGui.showGui();
+
+		// Register the selling-agent service in the yellow pages
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("vendedor");
+		sd.setName("JADE-Lonja");
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+
+		// Add the lots to the agent
+		addLotsFromConfig(config);
+
+		// Add register behaviour
+		addBehaviour(new RequestRegistro());
+
+		// Add deposit behaviour
+		// addBehaviour(new DepositoDeCaptura());
+
+	}
+
+	private void addLotsFromConfig(SellerAgentConfig config) {
+		lots = (ArrayList<Lot>) config.lots;
+	}
+
 	private SellerAgentConfig initAgentFromConfigFile(String fileName) {
 		SellerAgentConfig config = null;
 		try {
@@ -75,26 +96,27 @@ public class SellerAgent extends POAAgent  {
 		}
 		return config;
 	}
-	
-	public void nuevaMercancia(String title, int cantidad) {
-		System.out.println("Nuevo paquete de mercancia con " + cantidad + "kg de " + title);
-		
-		addBehaviour(new DepositoDeCaptura(title, cantidad));
-	}
-	
-	private class DepositoDeCaptura extends Behaviour {
 
+	public void nuevaMercancia(String type, float kg) {
+		System.out.println("Nuevo paquete de mercancia con " + kg + "kg de " + type);
+
+		Lot lot = new Lot();
+		lot.setKg(kg);
+		lot.setType(type);
+		lots.add(lot);
+
+		// addBehaviour(new DepositoDeCaptura(title, cantidad));
+	}
+
+	/*
+	 * Clase privada que se encarga del registro del vendedor, le manda un mensaje
+	 * tipo request y el RAV le responde si se le ha registrado correctamente o no
+	 */
+	private class RequestRegistro extends Behaviour {
+		private static final long serialVersionUID = 1L;
 		private MessageTemplate mt; // The template to receive replies
 		private int step = 0;
 
-		private String title;
-		private int cantidad;
-		
-		public DepositoDeCaptura(String title, int cantidad) {
-			this.title = title;
-			this.cantidad = cantidad;
-		}
-		
 		@Override
 		public void action() {
 			switch (step) {
@@ -103,13 +125,12 @@ public class SellerAgent extends POAAgent  {
 				ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
 
 				req.addReceiver(lonjaAgent);
-				req.setConversationId("deposito-captura");
-				req.setContent(title + "," + cantidad); 
-				req.setReplyWith("dep" + System.currentTimeMillis()); // Unique value
+				req.setConversationId("registro-vendedor");
+				req.setReplyWith("req" + System.currentTimeMillis()); // Unique value
 
 				myAgent.send(req);
-				// Prepare the template to get proposals
-				mt = MessageTemplate.and(MessageTemplate.MatchConversationId("deposito-captura"),
+				// Prepare the template
+				mt = MessageTemplate.and(MessageTemplate.MatchConversationId("registro-vendedor"),
 						MessageTemplate.MatchInReplyTo(req.getReplyWith()));
 				step = 1;
 				break;
@@ -118,10 +139,10 @@ public class SellerAgent extends POAAgent  {
 				if (reply != null) {
 					// Reply received
 					if (reply.getPerformative() == ACLMessage.INFORM) {
-						// Deposito de capturas exitoso
-						System.out.println("Deposito de capturas a vender exitoso");
+						// Registro exitoso
+						getLogger().info("RequestRegistro", "Register Succeed");;
 					} else {
-						// Fallo en el deposito de capturas
+						// Fallo en el registro
 						System.out.println(reply.getContent());
 					}
 					step = 2;
@@ -138,7 +159,61 @@ public class SellerAgent extends POAAgent  {
 		public boolean done() {
 			return step == 2;
 		}
-		
+
+	}
+	// End of inner class RequestRegistro
+
+	private class DepositoDeCaptura extends CyclicBehaviour {
+
+		private static final long serialVersionUID = 1L;
+		private MessageTemplate mt; // The template to receive replies
+		private int step = 0;
+
+		@Override
+		public void action() {
+			if (lots.isEmpty()) {
+				Lot lot = lots.remove(0);
+				String type = lot.getType();
+				float kg = lot.getKg();
+
+				switch (step) {
+				case 0:
+					// Enviar request al agente lonja con rol RAV
+					ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
+
+					req.addReceiver(lonjaAgent);
+					req.setConversationId("deposito-captura");
+					req.setContent(type + "," + kg);
+					req.setReplyWith("dep" + System.currentTimeMillis()); // Unique value
+					
+					myAgent.send(req);
+					// Prepare the template to get proposals
+					mt = MessageTemplate.and(MessageTemplate.MatchConversationId("deposito-captura"),
+							MessageTemplate.MatchInReplyTo(req.getReplyWith()));
+					step = 1;
+					break;
+				case 1:
+					ACLMessage reply = myAgent.receive(mt);
+					if (reply != null) {
+						// Reply received
+						if (reply.getPerformative() == ACLMessage.INFORM) {
+							// Deposito de capturas exitoso
+							System.out.println("Deposito de capturas a vender exitoso");
+						} else {
+							// Fallo en el deposito de capturas
+							System.out.println(reply.getContent());
+						}
+						step = 2;
+
+					} else {
+						block();
+					}
+					break;
+				}
+			}
+
+		}
+
 	}
 	// End of inner class Deposito de Capturas
 }

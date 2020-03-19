@@ -16,19 +16,19 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import agents.AgenteVendedor;
+import agents.seller.SellerAgent;
 
 @SuppressWarnings("serial")
-public class GuiComprador extends JFrame {
+public class GuiVendedor extends JFrame {
 	
-	private AgenteVendedor myAgent;
+	private SellerAgent myAgent;
 
 	private JTextField titleField, cantidadField;
 
-	public GuiComprador(AgenteVendedor a) {
-		super(a.getLocalName());
+	public GuiVendedor(SellerAgent sellerAgent) {
+		super(sellerAgent.getLocalName());
 		
-		myAgent = a;
+		myAgent = sellerAgent;
 		
 		JPanel p = new JPanel();
 		p.setLayout(new GridLayout(2, 2));
@@ -51,7 +51,7 @@ public class GuiComprador extends JFrame {
 					cantidadField.setText("");
 				}
 				catch (Exception e) {
-					JOptionPane.showMessageDialog(GuiComprador.this, "Invalid values. "+e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE); 
+					JOptionPane.showMessageDialog(GuiVendedor.this, "Invalid values. "+e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE); 
 				}
 			}
 		} );
