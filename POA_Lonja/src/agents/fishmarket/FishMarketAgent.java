@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 
 import org.yaml.snakeyaml.Yaml;
@@ -13,17 +14,24 @@ import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
+import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.FailureException;
+import jade.domain.FIPAAgentManagement.NotUnderstoodException;
+import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.proto.AchieveREResponder;
 
 public class FishMarketAgent extends POAAgent{
 	
 	private static final long serialVersionUID = 1L;
 	// The list of know seller agents
 	private ArrayList<AID> sellerAgents;
+	private ArrayList<AID> buyerAgents;
 	private Hashtable<String, Float> captures;
+	private HashMap<AID, Float> lineasCredito;
 	
 	public void setup() {
 		super.setup();
@@ -80,6 +88,34 @@ public class FishMarketAgent extends POAAgent{
 		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de capturas del RV
 		//addBehaviour(new RequestDepositoCaptura());
 		
+		
+		// (protocolo-apertura-credito)
+		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		this.addBehaviour(new AchieveREResponder(this, mt) {
+			@Override
+			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
+				AID sender = request.getSender();
+				if(!buyerAgents.contains(sender)) {
+					ACLMessage response = request.createReply();
+					response.setPerformative(ACLMessage.REFUSE);
+					response.setContent("not registered");
+					return response;
+				}
+				ACLMessage response = request.createReply();
+				response.setPerformative(ACLMessage.AGREE);
+				return response;
+			}
+			
+			@Override
+			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
+					throws FailureException {
+				lineasCredito.put(request.getSender(), Float.valueOf(request.getContent()));
+				ACLMessage informDone = request.createReply();
+				informDone.setPerformative(ACLMessage.INFORM);
+				informDone.setContent("OK");
+				return informDone;
+			}
+		});
 	}
 	/*
 	 * Clase privada que se encarga de recibir los mensajes tipo request del vendedor

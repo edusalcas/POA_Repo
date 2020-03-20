@@ -30,6 +30,8 @@ public class BuyerAgent extends POAAgent {
 	
 	private float budget;
 	
+	private boolean lineaCredito;
+	
 	private ArrayList<Lot> lots;
 
 	public void setup() {
@@ -93,33 +95,23 @@ public class BuyerAgent extends POAAgent {
 		request.addReceiver(lonjaAgent);
 		request.setContent(Float.toString(budget));
 		request.setConversationId("apertura-credito");
-		addBehaviour(new AchieveREInitiator(this, request) {
-			@Override
-			protected void handleInform(ACLMessage inform) {
-				if(inform.getContent() == "OK") {
-				
+		while(lineaCredito != true) {
+			addBehaviour(new AchieveREInitiator(this, request) {
+				private String estado;
+				@Override
+				protected void handleInform(ACLMessage inform) {
+					if(inform.getContent() == "OK") {
+						lineaCredito = true;
+					}
 				}
-			}
-			
-			
-		});
+				
+				
+			});
+		}
+		
 		
 		
 	}
 	
-	private class AperturaCredito extends OneShotBehaviour {
-
-		@Override
-		public void action() {
-			ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
-			request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-			request.addReceiver(lonjaAgent);
-			request.setContent(Float.toString(budget));
-			request.setConversationId("apertura-credito");
-			
-		}
-
-		
-		
-	}
+	
 }
