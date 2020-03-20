@@ -24,23 +24,23 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREResponder;
 
-public class FishMarketAgent extends POAAgent{
-	
+public class FishMarketAgent extends POAAgent {
+
 	private static final long serialVersionUID = 1L;
 	// The list of know seller agents
 	private ArrayList<AID> sellerAgents;
 	private ArrayList<AID> buyerAgents;
 	private Hashtable<String, Float> captures;
 	private HashMap<AID, Float> lineasCredito;
-	
+
 	public void setup() {
 		super.setup();
 		Object[] args = getArguments();
 		if (args != null && args.length == 1) {
 			String configFile = (String) args[0];
 			FishMarketAgentConfig config = initAgentFromConfigFile(configFile);
-			
-			if(config != null) {
+
+			if (config != null) {
 				init(config);
 			}
 		} else {
@@ -48,7 +48,6 @@ public class FishMarketAgent extends POAAgent{
 			doDelete();
 		}
 	}
-	
 
 	private FishMarketAgentConfig initAgentFromConfigFile(String fileName) {
 		FishMarketAgentConfig config = null;
@@ -63,7 +62,7 @@ public class FishMarketAgent extends POAAgent{
 		}
 		return config;
 	}
-	
+
 	private void init(FishMarketAgentConfig config) {
 		System.out.println("Soy el agente lonja " + this.getName());
 
@@ -85,17 +84,17 @@ public class FishMarketAgent extends POAAgent{
 
 		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistroVendedor());
-		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de capturas del RV
-		//addBehaviour(new RequestDepositoCaptura());
-		
-		
+		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de
+		// capturas del RV
+		addBehaviour(new RequestDepositoCaptura());
+
 		// (protocolo-apertura-credito)
 		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		this.addBehaviour(new AchieveREResponder(this, mt) {
 			@Override
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
 				AID sender = request.getSender();
-				if(!buyerAgents.contains(sender)) {
+				if (!buyerAgents.contains(sender)) {
 					ACLMessage response = request.createReply();
 					response.setPerformative(ACLMessage.REFUSE);
 					response.setContent("not registered");
@@ -105,7 +104,7 @@ public class FishMarketAgent extends POAAgent{
 				response.setPerformative(ACLMessage.AGREE);
 				return response;
 			}
-			
+
 			@Override
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
 					throws FailureException {
@@ -117,16 +116,18 @@ public class FishMarketAgent extends POAAgent{
 			}
 		});
 	}
+
 	/*
-	 * Clase privada que se encarga de recibir los mensajes tipo request del vendedor
-	 * para registrarse en la lonja. En caso de que el vendedor aun no este registrado,
-	 * se le registrara. De esta comunicación se encarga el RAV.
+	 * Clase privada que se encarga de recibir los mensajes tipo request del
+	 * vendedor para registrarse en la lonja. En caso de que el vendedor aun no este
+	 * registrado, se le registrara. De esta comunicación se encarga el RAV.
 	 */
 	private class RequestRegistroVendedor extends CyclicBehaviour {
 		private static final long serialVersionUID = 1L;
 
 		public void action() {
-			MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+			MessageTemplate mt = MessageTemplate.and(MessageTemplate.MatchConversationId("registro-vendedor"),
+					MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 			ACLMessage msg = myAgent.receive(mt);
 			AID sender;
 			if (msg != null) {
@@ -151,31 +152,36 @@ public class FishMarketAgent extends POAAgent{
 		}
 	}
 	// End of inner class RequestRegistroVendedor
-	
+
 	/*
-	 * Clase privada que se encarga de recibir los mensajes tipo request del vendedor
-	 * para hacer un deposito de una captura en la lonja. En caso de que el vendedor aun no este registrado,
-	 * se le registrara, esta operación no se podrá hacer. De esta comunicación se encarga el RRV.
+	 * Clase privada que se encarga de recibir los mensajes tipo request del
+	 * vendedor para hacer un deposito de una captura en la lonja. En caso de que el
+	 * vendedor aun no este registrado, se le registrara, esta operación no se podrá
+	 * hacer. De esta comunicación se encarga el RRV.
 	 */
 	private class RequestDepositoCaptura extends CyclicBehaviour {
 		private static final long serialVersionUID = 1L;
 
 		public void action() {
-			MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.REQUEST);
+			MessageTemplate mt = MessageTemplate.and(MessageTemplate.MatchConversationId("deposito-captura"),
+					MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 			ACLMessage msg = myAgent.receive(mt);
 			AID sender;
+
 			if (msg != null) {
 				// Request Message received. Process it.
 				ACLMessage reply = msg.createReply();
 				String[] content = msg.getContent().split(",");
 				String type = content[0];
 				float kg = Float.parseFloat(content[1]);
-				
+
 				sender = msg.getSender();
 
 				if (sellerAgents.contains(sender)) {
 					// Seller is registred
 					captures.put(type, kg);
+					reply.setContent(msg.getContent());
+					// reply.setConversationId("deposito-captura");
 					reply.setPerformative(ACLMessage.INFORM);
 				} else {
 					// Seller isnt registered

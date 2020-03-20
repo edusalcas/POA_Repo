@@ -46,7 +46,7 @@ public class GuiVendedor extends JFrame {
 				try {
 					String title = titleField.getText().trim();
 					String cantidad = cantidadField.getText().trim();
-					myAgent.nuevaMercancia(title, Integer.parseInt(cantidad));
+					myAgent.nuevaMercancia(title, Float.parseFloat(cantidad));
 					titleField.setText("");
 					cantidadField.setText("");
 				}

@@ -75,7 +75,7 @@ public class SellerAgent extends POAAgent {
 		addBehaviour(new RequestRegistro());
 
 		// Add deposit behaviour
-		// addBehaviour(new DepositoDeCaptura());
+		addBehaviour(new DepositoDeCaptura());
 
 	}
 
@@ -140,7 +140,8 @@ public class SellerAgent extends POAAgent {
 					// Reply received
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Registro exitoso
-						getLogger().info("RequestRegistro", "Register Succeed");;
+						getLogger().info("RequestRegistro", "Register Succeed");
+						;
 					} else {
 						// Fallo en el registro
 						System.out.println(reply.getContent());
@@ -171,26 +172,29 @@ public class SellerAgent extends POAAgent {
 
 		@Override
 		public void action() {
-			if (lots.isEmpty()) {
-				Lot lot = lots.remove(0);
-				String type = lot.getType();
-				float kg = lot.getKg();
-
+			if (!lots.isEmpty()) {
 				switch (step) {
 				case 0:
+
+					Lot lot = lots.get(0);
+					String type = lot.getType();
+					float kg = lot.getKg();
+
 					// Enviar request al agente lonja con rol RAV
 					ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
-
 					req.addReceiver(lonjaAgent);
 					req.setConversationId("deposito-captura");
 					req.setContent(type + "," + kg);
 					req.setReplyWith("dep" + System.currentTimeMillis()); // Unique value
-					
+
 					myAgent.send(req);
-					// Prepare the template to get proposals
+
+					// Prepare the template to get response
 					mt = MessageTemplate.and(MessageTemplate.MatchConversationId("deposito-captura"),
 							MessageTemplate.MatchInReplyTo(req.getReplyWith()));
+					
 					step = 1;
+					
 					break;
 				case 1:
 					ACLMessage reply = myAgent.receive(mt);
@@ -198,18 +202,28 @@ public class SellerAgent extends POAAgent {
 						// Reply received
 						if (reply.getPerformative() == ACLMessage.INFORM) {
 							// Deposito de capturas exitoso
-							System.out.println("Deposito de capturas a vender exitoso");
+							String[] content = reply.getContent().split(",");
+							String type1 = content[0];
+							float kg1 = Float.parseFloat(content[1]);
+							getLogger().info("DepositoDeCaptura", "Deposito de " + kg1 + "kg de " + type1 + " exitoso");
+
+							lots.remove(0);
+							step = 0;
 						} else {
 							// Fallo en el deposito de capturas
 							System.out.println(reply.getContent());
+	
+							step = 0;
 						}
-						step = 2;
 
 					} else {
 						block();
 					}
+
 					break;
 				}
+			} else {
+				block();
 			}
 
 		}
