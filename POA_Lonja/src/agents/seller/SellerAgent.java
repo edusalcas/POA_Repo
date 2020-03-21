@@ -71,10 +71,11 @@ public class SellerAgent extends POAAgent {
 		// Add the lots to the agent
 		addLotsFromConfig(config);
 
-		// Add register behaviour
+		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistro());
 
-		// Add deposit behaviour
+		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de
+		// capturas del RV	
 		addBehaviour(new DepositoDeCaptura());
 
 	}
@@ -100,12 +101,8 @@ public class SellerAgent extends POAAgent {
 	public void nuevaMercancia(String type, float kg) {
 		System.out.println("Nuevo paquete de mercancia con " + kg + "kg de " + type);
 
-		Lot lot = new Lot();
-		lot.setKg(kg);
-		lot.setType(type);
+		Lot lot = new Lot(type, kg);
 		lots.add(lot);
-
-		// addBehaviour(new DepositoDeCaptura(title, cantidad));
 	}
 
 	/*
@@ -192,9 +189,9 @@ public class SellerAgent extends POAAgent {
 					// Prepare the template to get response
 					mt = MessageTemplate.and(MessageTemplate.MatchConversationId("deposito-captura"),
 							MessageTemplate.MatchInReplyTo(req.getReplyWith()));
-					
+
 					step = 1;
-					
+
 					break;
 				case 1:
 					ACLMessage reply = myAgent.receive(mt);
@@ -212,7 +209,7 @@ public class SellerAgent extends POAAgent {
 						} else {
 							// Fallo en el deposito de capturas
 							System.out.println(reply.getContent());
-	
+
 							step = 0;
 						}
 

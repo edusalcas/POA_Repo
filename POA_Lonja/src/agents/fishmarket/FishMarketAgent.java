@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -29,11 +30,10 @@ public class FishMarketAgent extends POAAgent {
 
 	private static final long serialVersionUID = 1L;
 	// The list of know seller agents
-	private ArrayList<AID> sellerAgents;
+	private HashMap<AID, List<Lot>> sellerAgents;
 	private ArrayList<AID> buyerAgents;
-	private Hashtable<String, Float> captures;
 	private HashMap<AID, Float> lineasCredito;
-	private HashMap<AID, Lot> lotesComprador;
+	private HashMap<AID, List<Lot>> lotesComprador;
 
 	public void setup() {
 		super.setup();
@@ -68,10 +68,13 @@ public class FishMarketAgent extends POAAgent {
 	private void init(FishMarketAgentConfig config) {
 		System.out.println("Soy el agente lonja " + this.getName());
 
-		sellerAgents = new ArrayList<AID>();
-		captures = new Hashtable<String, Float>();
-
-		// Register the book-selling service in the yellow pages
+		// Initialize variables
+		sellerAgents = new HashMap<AID, List<Lot>>();
+		buyerAgents = new ArrayList<AID>();
+		lineasCredito = new HashMap<AID, Float>();
+		lotesComprador = new HashMap<AID, List<Lot>>();
+		
+		// Register the fish-market service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -151,9 +154,9 @@ public class FishMarketAgent extends POAAgent {
 				ACLMessage reply = msg.createReply();
 				sender = msg.getSender();
 
-				if (!sellerAgents.contains(sender)) {
+				if (!sellerAgents.containsKey(sender)) {
 					// Seller can be registered
-					sellerAgents.add(sender);
+					sellerAgents.put(sender, new ArrayList<Lot>());
 					reply.setPerformative(ACLMessage.INFORM);
 				} else {
 					// Seller cant be registered
@@ -193,11 +196,12 @@ public class FishMarketAgent extends POAAgent {
 
 				sender = msg.getSender();
 
-				if (sellerAgents.contains(sender)) {
+				if (sellerAgents.containsKey(sender)) {
 					// Seller is registred
-					captures.put(type, kg);
+					Lot lot = new Lot(type, kg);
+					sellerAgents.get(sender).add(lot);
+
 					reply.setContent(msg.getContent());
-					// reply.setConversationId("deposito-captura");
 					reply.setPerformative(ACLMessage.INFORM);
 				} else {
 					// Seller isnt registered

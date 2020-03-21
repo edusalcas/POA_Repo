@@ -70,7 +70,7 @@ public class BuyerAgent extends POAAgent {
 	private void init(BuyerAgentConfig config) {
 		System.out.println("Soy el agente comprador "+this.getName());
 		
-		// Registramos el agente comprador en las páginas amarillas
+		// Registramos el agente comprador en las pï¿½ginas amarillas
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
@@ -83,13 +83,13 @@ public class BuyerAgent extends POAAgent {
 			e.printStackTrace();
 		}
 		
-		//Introducimos los valores de configuración en nuestro agente
+		//Introducimos los valores de configuraciï¿½n en nuestro agente
 		this.budget = config.getBudget();
 		
-		//Añadimos los Behaviours
+		//Aï¿½adimos los Behaviours
 		
 		
-		//Apertura de crédito
+		//Apertura de crï¿½dito
 		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
 		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		request.addReceiver(lonjaAgent);
@@ -118,7 +118,7 @@ public class BuyerAgent extends POAAgent {
 			@Override
 			protected void handleInform(ACLMessage inform) {
 				//TODO
-				if(inform.getContent() == )
+//				if(inform.getContent() == )
 			}
 		});
 		
