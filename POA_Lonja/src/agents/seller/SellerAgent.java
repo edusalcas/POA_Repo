@@ -137,7 +137,7 @@ public class SellerAgent extends POAAgent {
 					// Reply received
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Registro exitoso
-						getLogger().info("RequestRegistro", "Register Succeed");
+						getLogger().info("RequestRegistroVendedor", "Register Succeed");
 						;
 					} else {
 						// Fallo en el registro

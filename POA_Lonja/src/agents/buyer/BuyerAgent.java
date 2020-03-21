@@ -22,27 +22,26 @@ import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREInitiator;
 
 public class BuyerAgent extends POAAgent {
-		
 
 	private static final long serialVersionUID = 1L;
-	
+
 	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME);
-	
+
 	private float budget;
-	
+
 	private boolean lineaCredito;
-	
+
 	private ArrayList<Lot> lots;
 
 	public void setup() {
 		super.setup();
-		
+
 		Object[] args = getArguments();
 		if (args != null && args.length == 1) {
 			String configFile = (String) args[0];
 			BuyerAgentConfig config = initAgentFromConfigFile(configFile);
-			
-			if(config != null) {
+
+			if (config != null) {
 				init(config);
 			} else {
 				doDelete();
@@ -52,7 +51,7 @@ public class BuyerAgent extends POAAgent {
 			doDelete();
 		}
 	}
-	
+
 	private BuyerAgentConfig initAgentFromConfigFile(String fileName) {
 		BuyerAgentConfig config = null;
 		try {
@@ -66,10 +65,10 @@ public class BuyerAgent extends POAAgent {
 		}
 		return config;
 	}
-	
+
 	private void init(BuyerAgentConfig config) {
-		System.out.println("Soy el agente comprador "+this.getName());
-		
+		System.out.println("Soy el agente comprador " + this.getName());
+
 		// Registramos el agente comprador en las p�ginas amarillas
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -82,34 +81,34 @@ public class BuyerAgent extends POAAgent {
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
-		
-		//Introducimos los valores de configuraci�n en nuestro agente
+
+		// Introducimos los valores de configuraci�n en nuestro agente
 		this.budget = config.getBudget();
+
+		// A�adimos los Behaviours
+
+		addBehaviour(new RequestAdmision());
 		
-		//A�adimos los Behaviours
-		
-		
-		//Apertura de cr�dito
+		// Apertura de cr�dito
 		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
 		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		request.addReceiver(lonjaAgent);
 		request.setContent(Float.toString(budget));
 		request.setConversationId("apertura-credito");
-		while(lineaCredito != true) {
+		while (lineaCredito != true) {
 			addBehaviour(new AchieveREInitiator(this, request) {
 				private String estado;
+
 				@Override
 				protected void handleInform(ACLMessage inform) {
-					if(inform.getContent() == "OK") {
-						lineaCredito = true;
-					}
+					// getLogger().info(behaviour, msg);
+					lineaCredito = true;
 				}
-				
-				
+
 			});
 		}
-		
-		//Retirada Compras
+
+		// Retirada Compras
 		request = new ACLMessage(ACLMessage.REQUEST);
 		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		request.addReceiver(lonjaAgent);
@@ -117,12 +116,67 @@ public class BuyerAgent extends POAAgent {
 		addBehaviour(new AchieveREInitiator(this, request) {
 			@Override
 			protected void handleInform(ACLMessage inform) {
-				//TODO
+				// TODO
 //				if(inform.getContent() == )
 			}
 		});
-		
+
 	}
 	
-	
+	/*
+	 * Clase privada que se encarga del registro del comprador, le manda un mensaje
+	 * tipo request y el RAC le responde si se le ha registrado correctamente o no
+	 */
+	private class RequestAdmision extends Behaviour {
+		private static final long serialVersionUID = 1L;
+		private MessageTemplate mt; // The template to receive replies
+		private int step = 0;
+
+		@Override
+		public void action() {
+			switch (step) {
+			case 0:
+				// Enviar request al agente lonja con rol RAV
+				ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
+
+				req.addReceiver(lonjaAgent);
+				req.setConversationId("admision-comprador");
+				req.setReplyWith("req" + System.currentTimeMillis()); // Unique value
+
+				myAgent.send(req);
+				// Prepare the template
+				mt = MessageTemplate.and(MessageTemplate.MatchConversationId("admision-comprador"),
+						MessageTemplate.MatchInReplyTo(req.getReplyWith()));
+				step = 1;
+				break;
+			case 1:
+				ACLMessage reply = myAgent.receive(mt);
+				if (reply != null) {
+					// Reply received
+					if (reply.getPerformative() == ACLMessage.INFORM) {
+						// Registro exitoso
+						getLogger().info("RequestAdmisionComprador", "Register Succeed");
+						;
+					} else {
+						// Fallo en el registro
+						System.out.println(reply.getContent());
+					}
+					step = 2;
+
+				} else {
+					block();
+				}
+				break;
+			}
+
+		}
+
+		@Override
+		public boolean done() {
+			return step == 2;
+		}
+
+	}
+	// End of inner class RequestRegistro
+
 }

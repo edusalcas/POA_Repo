@@ -31,9 +31,12 @@ public class FishMarketAgent extends POAAgent {
 	private static final long serialVersionUID = 1L;
 	// The list of know seller agents
 	private HashMap<AID, List<Lot>> sellerAgents;
+	
 	private ArrayList<AID> buyerAgents;
 	private HashMap<AID, Float> lineasCredito;
 	private HashMap<AID, List<Lot>> lotesComprador;
+	
+	private HashMap<Integer, List<AID>> lanes;
 
 	public void setup() {
 		super.setup();
@@ -73,6 +76,7 @@ public class FishMarketAgent extends POAAgent {
 		buyerAgents = new ArrayList<AID>();
 		lineasCredito = new HashMap<AID, Float>();
 		lotesComprador = new HashMap<AID, List<Lot>>();
+		lanes = new HashMap<Integer, List<AID>>();
 		
 		// Register the fish-market service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -93,6 +97,9 @@ public class FishMarketAgent extends POAAgent {
 		// capturas del RV
 		addBehaviour(new RequestDepositoCaptura());
 
+		// (protocolo-admision-comprador)
+		addBehaviour(new RequestAdmisionComprador());
+		
 		// (protocolo-apertura-credito)
 		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		this.addBehaviour(new AchieveREResponder(this, mt) {
@@ -216,4 +223,41 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 	// End of inner class RequestDepositoCaptura
+	
+	
+	/*
+	 * Clase privada que se encarga de recibir los mensajes tipo request del
+	 * comprador para registrarse en la lonja. En caso de que el vendedor aun no este
+	 * registrado, se le registrara. De esta comunicación se encarga el RAC.
+	 */
+	private class RequestAdmisionComprador extends CyclicBehaviour {
+		private static final long serialVersionUID = 1L;
+
+		public void action() {
+			MessageTemplate mt = MessageTemplate.and(MessageTemplate.MatchConversationId("admision-comprador"),
+					MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
+			ACLMessage msg = myAgent.receive(mt);
+			AID sender;
+			if (msg != null) {
+				// Request Message received. Process it.
+				ACLMessage reply = msg.createReply();
+				sender = msg.getSender();
+
+				if (!buyerAgents.contains(sender)) {
+					// Seller can be registered
+					buyerAgents.add(sender);
+					reply.setPerformative(ACLMessage.INFORM);
+				} else {
+					// Seller cant be registered
+					reply.setPerformative(ACLMessage.REFUSE);
+					reply.setContent("Fallo en el registro");
+				}
+
+				myAgent.send(reply);
+			} else {
+				block();
+			}
+		}
+	}
+	// End of inner class RequestRegistroVendedor
 }
