@@ -2,7 +2,9 @@ package agents.fishmarket;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -129,16 +131,22 @@ public class FishMarketAgent extends POAAgent {
 		});
 		
 		//protocolo retirada compras
-		mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		mt = MessageTemplate.and(AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST), MessageTemplate.MatchConversationId("retirar-compras"));
 		addBehaviour(new AchieveREResponder(this, mt) {
 			//TODO
 			@Override
-			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
-				if(request.getConversationId() != "retirar-compras") {
-					ACLMessage response = request.createReply();
-					
+			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
+					throws FailureException {
+				//TODO Actualizar también el crédito disponible
+				List<Lot> content = lotesComprador.get(request.getSender());
+				ACLMessage informDone = request.createReply();
+				informDone.setPerformative(ACLMessage.INFORM);
+				try {
+					informDone.setContentObject((Serializable) content);
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-				return null;
+				return informDone;
 			}
 		});
 	}

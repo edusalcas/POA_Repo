@@ -4,6 +4,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -19,6 +21,7 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREInitiator;
 
 public class BuyerAgent extends POAAgent {
@@ -31,7 +34,7 @@ public class BuyerAgent extends POAAgent {
 
 	private boolean lineaCredito;
 
-	private ArrayList<Lot> lots;
+	private List<Lot> lots;
 
 	public void setup() {
 		super.setup();
@@ -68,7 +71,9 @@ public class BuyerAgent extends POAAgent {
 
 	private void init(BuyerAgentConfig config) {
 		System.out.println("Soy el agente comprador " + this.getName());
-
+		
+		lots = new LinkedList<Lot>();
+		
 		// Registramos el agente comprador en las p�ginas amarillas
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -116,8 +121,13 @@ public class BuyerAgent extends POAAgent {
 		addBehaviour(new AchieveREInitiator(this, request) {
 			@Override
 			protected void handleInform(ACLMessage inform) {
-				// TODO
-//				if(inform.getContent() == )
+				try {
+					List<Lot> lotes = (List<Lot>) inform.getContentObject();
+					lots = lotes;
+				} catch (UnreadableException e) {
+					e.printStackTrace();
+				}
+				
 			}
 		});
 
