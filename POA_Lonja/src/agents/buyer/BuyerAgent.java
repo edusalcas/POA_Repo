@@ -109,7 +109,18 @@ public class BuyerAgent extends POAAgent {
 			});
 		}
 		
-		
+		//Retirada Compras
+		request = new ACLMessage(ACLMessage.REQUEST);
+		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		request.addReceiver(lonjaAgent);
+		request.setConversationId("retirar-compras");
+		addBehaviour(new AchieveREInitiator(this, request) {
+			@Override
+			protected void handleInform(ACLMessage inform) {
+				//TODO
+				if(inform.getContent() == )
+			}
+		});
 		
 	}
 	

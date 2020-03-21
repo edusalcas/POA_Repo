@@ -10,6 +10,7 @@ import java.util.Hashtable;
 import org.yaml.snakeyaml.Yaml;
 
 import agents.POAAgent;
+import agents.seller.Lot;
 import jade.core.AID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
@@ -32,6 +33,7 @@ public class FishMarketAgent extends POAAgent {
 	private ArrayList<AID> buyerAgents;
 	private Hashtable<String, Float> captures;
 	private HashMap<AID, Float> lineasCredito;
+	private HashMap<AID, Lot> lotesComprador;
 
 	public void setup() {
 		super.setup();
@@ -113,6 +115,20 @@ public class FishMarketAgent extends POAAgent {
 				informDone.setPerformative(ACLMessage.INFORM);
 				informDone.setContent("OK");
 				return informDone;
+			}
+		});
+		
+		//protocolo retirada compras
+		mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		addBehaviour(new AchieveREResponder(this, mt) {
+			//TODO
+			@Override
+			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
+				if(request.getConversationId() != "retirar-compras") {
+					ACLMessage response = request.createReply();
+					
+				}
+				return null;
 			}
 		});
 	}
