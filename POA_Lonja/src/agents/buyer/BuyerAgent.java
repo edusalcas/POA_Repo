@@ -6,13 +6,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Flow.Subscription;
 
 import org.yaml.snakeyaml.Yaml;
 
 import agents.POAAgent;
 import agents.seller.Lot;
 import jade.core.AID;
+import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
@@ -113,13 +113,13 @@ public class BuyerAgent extends POAAgent{
 			addBehaviour(new AchieveREInitiator(this, request) {
 				@Override
 				protected void handleInform(ACLMessage inform) {
-					getLogger().info("Apertura crédito", "Se ha abierto correctamente la línea de crédito");
+					getLogger().info("Apertura crï¿½dito", "Se ha abierto correctamente la lï¿½nea de crï¿½dito");
 					lineaCredito = true;
 				}
 				
 				@Override
 				protected void handleRefuse(ACLMessage refuse) {
-					getLogger().info("Apertura crédito", "No se ha podido abrir una línea de crédito");
+					getLogger().info("Apertura crï¿½dito", "No se ha podido abrir una lï¿½nea de crï¿½dito");
 				}
 				
 				@Override
@@ -162,9 +162,48 @@ public class BuyerAgent extends POAAgent{
 		addBehaviour(new SubscriptionInitiator(this, request) {
 			
 			@Override
+			protected void handleAgree(ACLMessage agree) {
+				super.handleAgree(agree);
+				getLogger().info("Suscripcion linea ventas", "Suscripcion a linea de ventas realizada correctamente");
+			}
+			
+			@Override
+			protected void handleRefuse(ACLMessage refuse) {
+				super.handleRefuse(refuse);
+				getLogger().info("Suscripcion linea ventas", refuse.getContent());
+			}
+			
+			// Hemos recibo una subasta
+			@Override
 			protected void handleInform(ACLMessage inform) {
-
-				//TODO
+				try {
+					// Recibimos el lote de la subasta
+					Lot lote = (Lot) inform.getContentObject();
+					
+					// Comprobar si la subasta nos interesa
+					// TODO posiblemente con un random
+					
+					// Si nos interesa, llamar a un behaviour para realizar un FIPA-Request aceptando la subasta
+					ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+					request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+					request.addReceiver(lonjaAgent);
+					request.setConversationId("realizar-puja");
+					request.setContent(Integer.toString(lote.getID()));
+					getAgent().addBehaviour(new RealizarPuja(getAgent(), request));
+					
+					getLogger().info("Realizacion Puja", "Se puja por el lote: " + lote.toString());
+					
+					// Si no nos interesa no hacemos nada
+				} catch (UnreadableException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			@Override
+			protected void handleFailure(ACLMessage failure) {
+				// TODO
+				super.handleFailure(failure);
 			}
 			
 		});
@@ -226,6 +265,22 @@ public class BuyerAgent extends POAAgent{
 
 	}
 	// End of inner class RequestRegistro
+	
+	private class RealizarPuja extends AchieveREInitiator{
+
+		private static final long serialVersionUID = 1L;
+
+		public RealizarPuja(Agent subscriptionInitiator, ACLMessage msg) {
+			super(subscriptionInitiator, msg);
+		}
+
+		@Override
+		protected void handleInform(ACLMessage inform) {
+			getLogger().info("Aceptacion Puja", "La lonja ha aceptado la puja por el paquete");
+
+		}
+		
+	}
 
 	
 

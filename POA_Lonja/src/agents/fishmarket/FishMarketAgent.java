@@ -15,6 +15,7 @@ import org.yaml.snakeyaml.Yaml;
 import agents.POAAgent;
 import agents.seller.Lot;
 import jade.core.AID;
+import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
@@ -42,7 +43,8 @@ public class FishMarketAgent extends POAAgent {
 	private HashMap<AID, Float> lineasCredito;
 	private HashMap<AID, List<Lot>> lotesComprador;
 	private Manager subscriptionManager;
-	private HashMap<Integer, List<Subscription>> lanes;
+	private HashMap<Integer, List<Subscription>> lines;
+	private HashMap<Integer, List<Lot>> lineLots;
 
 	public void setup() {
 		super.setup();
@@ -82,7 +84,12 @@ public class FishMarketAgent extends POAAgent {
 		buyerAgents = new ArrayList<AID>();
 		lineasCredito = new HashMap<AID, Float>();
 		lotesComprador = new HashMap<AID, List<Lot>>();
-		lanes = new HashMap<Integer, List<Subscription>>();
+		lines = new HashMap<Integer, List<Subscription>>();
+		lineLots = new HashMap<Integer, List<Lot>>();
+
+		lines.put(1, new ArrayList<Subscription>());
+		lineLots.put(1, new ArrayList<Lot>());
+
 		subscriptionManager = new Manager();
 
 		// Register the fish-market service in the yellow pages
@@ -166,14 +173,22 @@ public class FishMarketAgent extends POAAgent {
 			protected ACLMessage handleSubscription(ACLMessage subscription)
 					throws NotUnderstoodException, RefuseException {
 				ACLMessage response;
+
 				if (subscriptionManager.register(createSubscription(subscription))) {
 					response = subscription.createReply();
 					response.setPerformative(ACLMessage.AGREE);
+
+					int linea = Integer.parseInt(subscription.getContent());
+
+					if (lines.get(linea).size() > 1)
+						iniciarLineaVenta(linea);
+
 				} else {
 					response = subscription.createReply();
 					response.setPerformative(ACLMessage.REFUSE);
-					response.setContent("Ya est�s suscrito a una l�nea de venta");
+					response.setContent("Ha habido un error en el proceso de suscripcion");
 				}
+
 				return response;
 			}
 
@@ -184,6 +199,11 @@ public class FishMarketAgent extends POAAgent {
 			}
 		});
 
+	}
+
+	private void iniciarLineaVenta(int linea) {
+		getLogger().info("Inicio subasta", "Ha dado comienzo la subasta de la linea " + linea);
+		addBehaviour(new SubastasLineaVentas(linea));
 	}
 
 	/*
@@ -251,6 +271,10 @@ public class FishMarketAgent extends POAAgent {
 					Lot lot = new Lot(type, kg);
 					sellerAgents.get(sender).add(lot);
 
+					// TODO Seleccionamos aleatoriamente la linea de venta para ese lote
+					int randomLine = 1;
+					lineLots.get(randomLine).add(lot);
+
 					reply.setContent(msg.getContent());
 					reply.setPerformative(ACLMessage.INFORM);
 				} else {
@@ -316,10 +340,10 @@ public class FishMarketAgent extends POAAgent {
 			AID sender = arg0.getMessage().getSender(); // Agente que se quiere suscribir
 
 			// Si la linea existe, desuscribir al agente
-			if (lanes.containsKey(linea))
-				for (Subscription s : lanes.get(linea))
+			if (lines.containsKey(linea))
+				for (Subscription s : lines.get(linea))
 					if (s.getMessage().getSender().equals(sender)) {
-						lanes.get(linea).remove(s);
+						lines.get(linea).remove(s);
 						return true;
 					}
 
@@ -332,27 +356,121 @@ public class FishMarketAgent extends POAAgent {
 			AID sender = arg0.getMessage().getSender(); // Agente que se quiere suscribir
 
 			// Si no existe la linea, se devuelve false
-			if (!lanes.containsKey(linea))
+			if (!lines.containsKey(linea))
 				return false;
 
 			// Si existe, se cuemprueba que no este suscrito ya a ninguna linea
-			for (int lv : lanes.keySet())
-				for (Subscription s : lanes.get(lv))
+			for (int lv : lines.keySet())
+				for (Subscription s : lines.get(lv))
 					if (s.getMessage().getSender().equals(sender))
 						return false;
 
 			// Si no esta suscrito, se suscribe a la linea de venta
-			lanes.get(linea).add(arg0);
+			lines.get(linea).add(arg0);
 			return true;
 		}
 
 	}
 	// End of inner class Manager
 
-	private void notificarLinea(int lv) {
-		for (Subscription s : lanes.get(lv)) {
-			ACLMessage notification = new ACLMessage();
-			notification.setContent("patata");
+	private class SubastasLineaVentas extends Behaviour {
+
+		private static final long serialVersionUID = 1L;
+		private MessageTemplate mt = MessageTemplate.and(
+				AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
+				MessageTemplate.MatchConversationId("realizar-puja")); // The template to receive replies
+		private int step = 0;
+		private int lineaVentas = 0;
+		Lot lote = null;
+		private final int TIMEOUT = 5000;
+
+		private long t0;
+
+		public SubastasLineaVentas(int lineaVentas) {
+			this.lineaVentas = lineaVentas;
+		}
+
+		@Override
+		public void action() {
+			if (!lineLots.get(lineaVentas).isEmpty()) {
+				switch (step) {
+				case 0:
+					// Cogemos el siguiente lote a subastar
+					lote = lineLots.get(lineaVentas).get(0);
+
+					// Notificas a todos los agentes suscritos en esa linea
+					notificarLinea(lineaVentas, lote);
+					t0 = System.currentTimeMillis();
+
+					step = 1;
+					break;
+				case 1:
+					ACLMessage reply = getAgent().receive(mt);
+					if (reply != null) {
+						// Si es una puja al lote actual (esto se hace por si se quedan pujas de otros lotes)
+						if (Integer.parseInt(reply.getContent()) == lote.getID()) {
+							// Borra el lote de la lina de ventas
+							lineLots.get(lineaVentas).remove(0);
+							// Se añade el lote a la lista de lotes del comprador
+							// TODO
+							// Se actualiza la linea de credito del comprador
+							// TODO
+							
+							// Se responde con un inform al agente que ha realizado la puja
+							ACLMessage response = reply.createReply();
+							response.setContent("OK");
+							response.setPerformative(ACLMessage.INFORM);
+							myAgent.send(response);
+							
+							// Volvemos al primer paso
+							step = 0;
+						}
+					} else {
+
+						if (t0 - System.currentTimeMillis() >= TIMEOUT) {
+							if (lote.getPrecio() == lote.getPrecioReserva()) {
+								// Borrar el lote de la linea de ventas
+								// TODO
+								// Añadir el lote a la lista de reservas
+								// TODO
+							} else {
+								lote.setPrecio(lote.getPrecio() - 1.0f);
+							}
+							step = 0;
+						} else {
+							block(1000);
+						}
+
+					}
+
+					break;
+				}
+			}
+
+		}
+
+		@Override
+		public boolean done() {
+			return lineLots.get(lineaVentas).isEmpty();
+		}
+
+	}
+	// End of inner class Deposito de Capturas
+
+	private void notificarLinea(int lv, Lot lote) {
+		for (Subscription s : lines.get(lv)) {
+
+			ACLMessage notification = s.getMessage().createReply();
+			notification.setPerformative(ACLMessage.INFORM);
+			// Poner como contenido el lote que se subasta (tipo, cantidad, precio)
+
+			try {
+				notification.setContentObject(lote);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 			s.notify(notification);
 		}
 	}
