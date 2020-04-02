@@ -145,7 +145,7 @@ public class FishMarketAgent extends POAAgent {
 			@Override
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
 					throws FailureException {
-				// TODO Actualizar tambi�n el cr�dito disponible
+				// TODO Actualizar tambi�n el cr�dito disponible
 				List<Lot> content = lotesComprador.get(request.getSender());
 				ACLMessage informDone = request.createReply();
 				informDone.setPerformative(ACLMessage.INFORM);
@@ -158,7 +158,7 @@ public class FishMarketAgent extends POAAgent {
 			}
 		});
 
-		// Protocolo Subscripci�n L�nea-Venta
+		// Protocolo Subscripci�n L�nea-Venta
 		mt = MessageTemplate.and(SubscriptionResponder.createMessageTemplate(ACLMessage.SUBSCRIBE),
 				MessageTemplate.MatchConversationId("subs-linea_venta"));
 		addBehaviour(new SubscriptionResponder(this, mt) {
@@ -166,20 +166,20 @@ public class FishMarketAgent extends POAAgent {
 			protected ACLMessage handleSubscription(ACLMessage subscription)
 					throws NotUnderstoodException, RefuseException {
 				ACLMessage response;
-				if(subscriptionManager.register(createSubscription(subscription))) {
+				if (subscriptionManager.register(createSubscription(subscription))) {
 					response = subscription.createReply();
 					response.setPerformative(ACLMessage.AGREE);
 				} else {
 					response = subscription.createReply();
 					response.setPerformative(ACLMessage.REFUSE);
-					response.setContent("Ya est�s suscrito a una l�nea de venta");
-				}				
+					response.setContent("Ya est�s suscrito a una l�nea de venta");
+				}
 				return response;
 			}
-			
+
 			@Override
 			protected ACLMessage handleCancel(ACLMessage cancel) throws FailureException {
-				// TODO 
+				// TODO
 				return super.handleCancel(cancel);
 			}
 		});
@@ -225,8 +225,8 @@ public class FishMarketAgent extends POAAgent {
 	/*
 	 * Clase privada que se encarga de recibir los mensajes tipo request del
 	 * vendedor para hacer un deposito de una captura en la lonja. En caso de que el
-	 * vendedor aun no este registrado, se le registrara, esta operación no se
-	 * podrá hacer. De esta comunicación se encarga el RRV.
+	 * vendedor aun no este registrado, se le registrara, esta operación no se podrá
+	 * hacer. De esta comunicación se encarga el RRV.
 	 */
 	private class RequestDepositoCaptura extends CyclicBehaviour {
 		private static final long serialVersionUID = 1L;
@@ -304,41 +304,53 @@ public class FishMarketAgent extends POAAgent {
 	}
 	// End of inner class RequestRegistroVendedor
 
+	/*
+	 * Clase privada necesaria para el protocolo suscribir en linea de venta,
+	 * encargada de la función de suscribir y desuscribir a un agente
+	 */
 	private class Manager implements SubscriptionManager {
 
 		@Override
 		public boolean deregister(Subscription arg0) throws FailureException {
-			if (lanes.containsKey(Integer.parseInt(arg0.getMessage().getContent()))) {
-				for (Subscription s : lanes.get(Integer.parseInt(arg0.getMessage().getContent()))) {
-					if (s.getMessage().getSender().equals(arg0.getMessage().getSender())) {
-						lanes.get(Integer.parseInt(arg0.getMessage().getContent())).remove(s);
+			int linea = Integer.parseInt(arg0.getMessage().getContent()); // Linea a la que se quiere suscribir
+			AID sender = arg0.getMessage().getSender(); // Agente que se quiere suscribir
+
+			// Si la linea existe, desuscribir al agente
+			if (lanes.containsKey(linea))
+				for (Subscription s : lanes.get(linea))
+					if (s.getMessage().getSender().equals(sender)) {
+						lanes.get(linea).remove(s);
 						return true;
 					}
-				}
-			}
+
 			return false;
 		}
 
 		@Override
 		public boolean register(Subscription arg0) throws RefuseException, NotUnderstoodException {
-			if (!lanes.containsKey(Integer.parseInt(arg0.getMessage().getContent()))) {
+			int linea = Integer.parseInt(arg0.getMessage().getContent()); // Linea a la que se quiere suscribir
+			AID sender = arg0.getMessage().getSender(); // Agente que se quiere suscribir
+
+			// Si no existe la linea, se devuelve false
+			if (!lanes.containsKey(linea))
 				return false;
-			}
-			for (int lv : lanes.keySet()) {
-				for (Subscription s : lanes.get(lv)) {
-					if (s.getMessage().getSender().equals(arg0.getMessage().getSender())) {
+
+			// Si existe, se cuemprueba que no este suscrito ya a ninguna linea
+			for (int lv : lanes.keySet())
+				for (Subscription s : lanes.get(lv))
+					if (s.getMessage().getSender().equals(sender))
 						return false;
-					}
-				}
-			}
-			lanes.get(Integer.parseInt(arg0.getMessage().getContent())).add(arg0);
+
+			// Si no esta suscrito, se suscribe a la linea de venta
+			lanes.get(linea).add(arg0);
 			return true;
 		}
 
 	}
-	
+	// End of inner class Manager
+
 	private void notificarLinea(int lv) {
-		for(Subscription s : lanes.get(lv)) {
+		for (Subscription s : lanes.get(lv)) {
 			ACLMessage notification = new ACLMessage();
 			notification.setContent("patata");
 			s.notify(notification);
