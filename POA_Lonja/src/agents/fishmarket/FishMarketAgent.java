@@ -27,18 +27,22 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREResponder;
+import jade.proto.FIPAProtocolNames;
+import jade.proto.SubscriptionResponder;
+import jade.proto.SubscriptionResponder.Subscription;
+import jade.proto.SubscriptionResponder.SubscriptionManager;
 
 public class FishMarketAgent extends POAAgent {
 
 	private static final long serialVersionUID = 1L;
 	// The list of know seller agents
 	private HashMap<AID, List<Lot>> sellerAgents;
-	
+
 	private ArrayList<AID> buyerAgents;
 	private HashMap<AID, Float> lineasCredito;
 	private HashMap<AID, List<Lot>> lotesComprador;
-	
-	private HashMap<Integer, List<AID>> lanes;
+	private Manager subscriptionManager;
+	private HashMap<Integer, List<Subscription>> lanes;
 
 	public void setup() {
 		super.setup();
@@ -78,8 +82,9 @@ public class FishMarketAgent extends POAAgent {
 		buyerAgents = new ArrayList<AID>();
 		lineasCredito = new HashMap<AID, Float>();
 		lotesComprador = new HashMap<AID, List<Lot>>();
-		lanes = new HashMap<Integer, List<AID>>();
-		
+		lanes = new HashMap<Integer, List<Subscription>>();
+		subscriptionManager = new Manager();
+
 		// Register the fish-market service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -101,9 +106,11 @@ public class FishMarketAgent extends POAAgent {
 
 		// (protocolo-admision-comprador)
 		addBehaviour(new RequestAdmisionComprador());
-		
+
 		// (protocolo-apertura-credito)
-		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		MessageTemplate mt = MessageTemplate.and(
+				AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
+				MessageTemplate.MatchConversationId("apertura-credito"));
 		this.addBehaviour(new AchieveREResponder(this, mt) {
 			@Override
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
@@ -129,15 +136,16 @@ public class FishMarketAgent extends POAAgent {
 				return informDone;
 			}
 		});
-		
-		//protocolo retirada compras
-		mt = MessageTemplate.and(AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST), MessageTemplate.MatchConversationId("retirar-compras"));
+
+		// protocolo retirada compras
+		mt = MessageTemplate.and(AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
+				MessageTemplate.MatchConversationId("retirar-compras"));
 		addBehaviour(new AchieveREResponder(this, mt) {
-			//TODO
+			// TODO
 			@Override
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
 					throws FailureException {
-				//TODO Actualizar tambi閚 el cr閐ito disponible
+				// TODO Actualizar tambi閚 el cr閐ito disponible
 				List<Lot> content = lotesComprador.get(request.getSender());
 				ACLMessage informDone = request.createReply();
 				informDone.setPerformative(ACLMessage.INFORM);
@@ -149,6 +157,33 @@ public class FishMarketAgent extends POAAgent {
 				return informDone;
 			}
 		});
+
+		// Protocolo Subscripci髇 L韓ea-Venta
+		mt = MessageTemplate.and(SubscriptionResponder.createMessageTemplate(ACLMessage.SUBSCRIBE),
+				MessageTemplate.MatchConversationId("subs-linea_venta"));
+		addBehaviour(new SubscriptionResponder(this, mt) {
+			@Override
+			protected ACLMessage handleSubscription(ACLMessage subscription)
+					throws NotUnderstoodException, RefuseException {
+				ACLMessage response;
+				if(subscriptionManager.register(createSubscription(subscription))) {
+					response = subscription.createReply();
+					response.setPerformative(ACLMessage.AGREE);
+				} else {
+					response = subscription.createReply();
+					response.setPerformative(ACLMessage.REFUSE);
+					response.setContent("Ya est醩 suscrito a una l韓ea de venta");
+				}				
+				return response;
+			}
+			
+			@Override
+			protected ACLMessage handleCancel(ACLMessage cancel) throws FailureException {
+				// TODO 
+				return super.handleCancel(cancel);
+			}
+		});
+
 	}
 
 	/*
@@ -190,8 +225,8 @@ public class FishMarketAgent extends POAAgent {
 	/*
 	 * Clase privada que se encarga de recibir los mensajes tipo request del
 	 * vendedor para hacer un deposito de una captura en la lonja. En caso de que el
-	 * vendedor aun no este registrado, se le registrara, esta operaci贸n no se podr谩
-	 * hacer. De esta comunicaci贸n se encarga el RRV.
+	 * vendedor aun no este registrado, se le registrara, esta operaci贸n no se
+	 * podr谩 hacer. De esta comunicaci贸n se encarga el RRV.
 	 */
 	private class RequestDepositoCaptura extends CyclicBehaviour {
 		private static final long serialVersionUID = 1L;
@@ -231,12 +266,11 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 	// End of inner class RequestDepositoCaptura
-	
-	
+
 	/*
 	 * Clase privada que se encarga de recibir los mensajes tipo request del
-	 * comprador para registrarse en la lonja. En caso de que el vendedor aun no este
-	 * registrado, se le registrara. De esta comunicaci贸n se encarga el RAC.
+	 * comprador para registrarse en la lonja. En caso de que el vendedor aun no
+	 * este registrado, se le registrara. De esta comunicaci贸n se encarga el RAC.
 	 */
 	private class RequestAdmisionComprador extends CyclicBehaviour {
 		private static final long serialVersionUID = 1L;
@@ -254,6 +288,7 @@ public class FishMarketAgent extends POAAgent {
 				if (!buyerAgents.contains(sender)) {
 					// Seller can be registered
 					buyerAgents.add(sender);
+					lotesComprador.put(sender, new ArrayList<Lot>());
 					reply.setPerformative(ACLMessage.INFORM);
 				} else {
 					// Seller cant be registered
@@ -268,4 +303,45 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 	// End of inner class RequestRegistroVendedor
+
+	private class Manager implements SubscriptionManager {
+
+		@Override
+		public boolean deregister(Subscription arg0) throws FailureException {
+			if (lanes.containsKey(Integer.parseInt(arg0.getMessage().getContent()))) {
+				for (Subscription s : lanes.get(Integer.parseInt(arg0.getMessage().getContent()))) {
+					if (s.getMessage().getSender().equals(arg0.getMessage().getSender())) {
+						lanes.get(Integer.parseInt(arg0.getMessage().getContent())).remove(s);
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		@Override
+		public boolean register(Subscription arg0) throws RefuseException, NotUnderstoodException {
+			if (!lanes.containsKey(Integer.parseInt(arg0.getMessage().getContent()))) {
+				return false;
+			}
+			for (int lv : lanes.keySet()) {
+				for (Subscription s : lanes.get(lv)) {
+					if (s.getMessage().getSender().equals(arg0.getMessage().getSender())) {
+						return false;
+					}
+				}
+			}
+			lanes.get(Integer.parseInt(arg0.getMessage().getContent())).add(arg0);
+			return true;
+		}
+
+	}
+	
+	private void notificarLinea(int lv) {
+		for(Subscription s : lanes.get(lv)) {
+			ACLMessage notification = new ACLMessage();
+			notification.setContent("patata");
+			s.notify(notification);
+		}
+	}
 }

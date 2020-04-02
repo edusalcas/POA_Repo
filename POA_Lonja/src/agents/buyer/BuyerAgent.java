@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Flow.Subscription;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -23,8 +24,9 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREInitiator;
+import jade.proto.SubscriptionInitiator;
 
-public class BuyerAgent extends POAAgent {
+public class BuyerAgent extends POAAgent{
 
 	private static final long serialVersionUID = 1L;
 
@@ -35,7 +37,12 @@ public class BuyerAgent extends POAAgent {
 	private boolean lineaCredito;
 
 	private List<Lot> lots;
+	
+	private boolean registered;
+	
 
+	
+	
 	public void setup() {
 		super.setup();
 
@@ -73,6 +80,7 @@ public class BuyerAgent extends POAAgent {
 		System.out.println("Soy el agente comprador " + this.getName());
 		
 		lots = new LinkedList<Lot>();
+		registered = false;
 		
 		// Registramos el agente comprador en las pï¿½ginas amarillas
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -97,38 +105,68 @@ public class BuyerAgent extends POAAgent {
 		// Apertura de crï¿½dito
 		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
 		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		
 		request.addReceiver(lonjaAgent);
 		request.setContent(Float.toString(budget));
 		request.setConversationId("apertura-credito");
-		while (lineaCredito != true) {
+		
 			addBehaviour(new AchieveREInitiator(this, request) {
-				private String estado;
-
 				@Override
 				protected void handleInform(ACLMessage inform) {
-					// getLogger().info(behaviour, msg);
+					getLogger().info("Apertura crédito", "Se ha abierto correctamente la línea de crédito");
 					lineaCredito = true;
+				}
+				
+				@Override
+				protected void handleRefuse(ACLMessage refuse) {
+					getLogger().info("Apertura crédito", "No se ha podido abrir una línea de crédito");
+				}
+				
+				@Override
+				protected boolean checkTermination(boolean currentDone, int currentResult) {
+					if(super.checkTermination(currentDone, currentResult) && lineaCredito) return true;
+					return false;
 				}
 
 			});
-		}
+		
 
 		// Retirada Compras
 		request = new ACLMessage(ACLMessage.REQUEST);
 		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		
 		request.addReceiver(lonjaAgent);
 		request.setConversationId("retirar-compras");
 		addBehaviour(new AchieveREInitiator(this, request) {
+			
 			@Override
 			protected void handleInform(ACLMessage inform) {
 				try {
 					List<Lot> lotes = (List<Lot>) inform.getContentObject();
 					lots = lotes;
+					getLogger().info("Retirar compras", "Se han retirado correctamente " + lots.toString());
 				} catch (UnreadableException e) {
 					e.printStackTrace();
 				}
 				
 			}
+			
+		});
+		
+		//Subscribirse a Linea-Venta
+		request = new ACLMessage(ACLMessage.SUBSCRIBE);
+		request.setProtocol(FIPANames.InteractionProtocol.FIPA_SUBSCRIBE);
+		request.addReceiver(lonjaAgent);
+		request.setConversationId("subs-linea_venta");
+		request.setContent("1");
+		addBehaviour(new SubscriptionInitiator(this, request) {
+			
+			@Override
+			protected void handleInform(ACLMessage inform) {
+
+				//TODO
+			}
+			
 		});
 
 	}
@@ -166,7 +204,7 @@ public class BuyerAgent extends POAAgent {
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Registro exitoso
 						getLogger().info("RequestAdmisionComprador", "Register Succeed");
-						;
+						registered = true;
 					} else {
 						// Fallo en el registro
 						System.out.println(reply.getContent());
@@ -188,5 +226,7 @@ public class BuyerAgent extends POAAgent {
 
 	}
 	// End of inner class RequestRegistro
+
+	
 
 }
