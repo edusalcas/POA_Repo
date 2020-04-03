@@ -180,7 +180,7 @@ public class FishMarketAgent extends POAAgent {
 
 					int linea = Integer.parseInt(subscription.getContent());
 
-					if (lines.get(linea).size() > 1)
+					if (lines.get(linea).size() > 1 && lineLots.get(linea).size() > 3)
 						iniciarLineaVenta(linea);
 
 				} else {
@@ -274,9 +274,11 @@ public class FishMarketAgent extends POAAgent {
 					// TODO Seleccionamos aleatoriamente la linea de venta para ese lote
 					int randomLine = 1;
 					lineLots.get(randomLine).add(lot);
-
+					if (lines.get(randomLine).size() > 1 && lineLots.get(randomLine).size() > 3)
+						iniciarLineaVenta(randomLine);
 					reply.setContent(msg.getContent());
 					reply.setPerformative(ACLMessage.INFORM);
+					
 				} else {
 					// Seller isnt registered
 					reply.setPerformative(ACLMessage.REFUSE);
@@ -376,13 +378,11 @@ public class FishMarketAgent extends POAAgent {
 	private class SubastasLineaVentas extends Behaviour {
 
 		private static final long serialVersionUID = 1L;
-		private MessageTemplate mt = MessageTemplate.and(
-				AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
-				MessageTemplate.MatchConversationId("realizar-puja")); // The template to receive replies
+		private MessageTemplate mt; // The template to receive replies
 		private int step = 0;
 		private int lineaVentas = 0;
 		Lot lote = null;
-		private final int TIMEOUT = 5000;
+		private final int TIMEOUT = 1000;
 
 		private long t0;
 
@@ -405,33 +405,38 @@ public class FishMarketAgent extends POAAgent {
 					step = 1;
 					break;
 				case 1:
+					mt = MessageTemplate.and(
+							AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
+							MessageTemplate.MatchConversationId("realizar-puja-"+lote.getID()));
 					ACLMessage reply = getAgent().receive(mt);
 					if (reply != null) {
-						// Si es una puja al lote actual (esto se hace por si se quedan pujas de otros lotes)
-						if (Integer.parseInt(reply.getContent()) == lote.getID()) {
-							// Borra el lote de la lina de ventas
-							lineLots.get(lineaVentas).remove(0);
-							// Se añade el lote a la lista de lotes del comprador
-							// TODO
-							// Se actualiza la linea de credito del comprador
-							// TODO
-							
-							// Se responde con un inform al agente que ha realizado la puja
-							ACLMessage response = reply.createReply();
-							response.setContent("OK");
-							response.setPerformative(ACLMessage.INFORM);
-							myAgent.send(response);
-							
-							// Volvemos al primer paso
-							step = 0;
-						}
+						// Borra el lote de la lina de ventas
+						lineLots.get(lineaVentas).remove(0);
+						// Se añade el lote a la lista de lotes del comprador
+						// TODO
+						// Se actualiza la linea de credito del comprador
+						// TODO
+						// Pagar al vendedor el precio de reserva
+						// TODO
+						// Se responde con un inform al agente que ha realizado la puja
+						ACLMessage response = reply.createReply();
+						response.setContent("OK");
+						response.setPerformative(ACLMessage.INFORM);
+						getAgent().send(response);
+						
+						// Volvemos al primer paso
+						step = 0;
+						
 					} else {
 
-						if (t0 - System.currentTimeMillis() >= TIMEOUT) {
+						if (System.currentTimeMillis() - t0 >= TIMEOUT) {
 							if (lote.getPrecio() == lote.getPrecioReserva()) {
+								getLogger().info("Subasta lote: "+lote.getID(), "No se ha vendido el lote: "+ lote.toString());
 								// Borrar el lote de la linea de ventas
-								// TODO
+								lineLots.get(lineaVentas).remove(0);
 								// Añadir el lote a la lista de reservas
+								// TODO
+								// Pagar al vendedor
 								// TODO
 							} else {
 								lote.setPrecio(lote.getPrecio() - 1.0f);

@@ -40,7 +40,7 @@ public class Lot implements Serializable{
 
 	@Override
 	public String toString() {
-		return "Lot [kg=" + kg + ", type=" + type + ", precio=" + precio + "]";
+		return "Lot [kg=" + kg + ", type=" + type + ", precio=" + precio + " ID=" + ID + "]";
 	}
 
 	public float getKg() {

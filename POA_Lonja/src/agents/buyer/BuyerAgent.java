@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -40,7 +41,7 @@ public class BuyerAgent extends POAAgent{
 	
 	private boolean registered;
 	
-
+	private final int PROB_PUJAR = 92;
 	
 	
 	public void setup() {
@@ -181,17 +182,19 @@ public class BuyerAgent extends POAAgent{
 					Lot lote = (Lot) inform.getContentObject();
 					
 					// Comprobar si la subasta nos interesa
-					// TODO posiblemente con un random
+					Random rand = new Random();
+					int valor = rand.nextInt(100);
 					
-					// Si nos interesa, llamar a un behaviour para realizar un FIPA-Request aceptando la subasta
-					ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
-					request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-					request.addReceiver(lonjaAgent);
-					request.setConversationId("realizar-puja");
-					request.setContent(Integer.toString(lote.getID()));
-					getAgent().addBehaviour(new RealizarPuja(getAgent(), request));
-					
-					getLogger().info("Realizacion Puja", "Se puja por el lote: " + lote.toString());
+					if (valor >= PROB_PUJAR) {
+						// Si nos interesa, llamar a un behaviour para realizar un FIPA-Request aceptando la subasta
+						ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
+						request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+						request.addReceiver(lonjaAgent);
+						request.setConversationId("realizar-puja-" + lote.getID());
+						request.setContent(Integer.toString(lote.getID()));
+						getAgent().addBehaviour(new RealizarPuja(getAgent(), request, lote));
+						getLogger().info("Subasta lote: "+lote.getID(), "Se puja por el lote: " + lote.toString());
+					}
 					
 					// Si no nos interesa no hacemos nada
 				} catch (UnreadableException e) {
@@ -269,14 +272,16 @@ public class BuyerAgent extends POAAgent{
 	private class RealizarPuja extends AchieveREInitiator{
 
 		private static final long serialVersionUID = 1L;
-
-		public RealizarPuja(Agent subscriptionInitiator, ACLMessage msg) {
+		private Lot lote;
+		
+		public RealizarPuja(Agent subscriptionInitiator, ACLMessage msg, Lot lote) {
 			super(subscriptionInitiator, msg);
+			this.lote = lote;
 		}
 
 		@Override
 		protected void handleInform(ACLMessage inform) {
-			getLogger().info("Aceptacion Puja", "La lonja ha aceptado la puja por el paquete");
+			getLogger().info("Subasta lote: "+lote.getID(), "La lonja ha aceptado la puja por el paquete");
 
 		}
 		
