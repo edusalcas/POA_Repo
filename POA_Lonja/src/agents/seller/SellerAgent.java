@@ -75,8 +75,11 @@ public class SellerAgent extends POAAgent {
 		addBehaviour(new RequestRegistro());
 
 		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de
-		// capturas del RV	
+		// capturas del RV
 		addBehaviour(new DepositoDeCaptura());
+		
+		// (protocolo-cobro)
+		addBehaviour(new RecieveCobro());
 
 	}
 
@@ -218,6 +221,41 @@ public class SellerAgent extends POAAgent {
 
 					break;
 				}
+			}
+		}
+
+	}
+	// End of inner class Deposito de Capturas
+
+	private class RecieveCobro extends CyclicBehaviour {
+
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public void action() {
+			MessageTemplate mt = MessageTemplate.and(MessageTemplate.MatchConversationId("cobro-" + myAgent.getAID()),
+					MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
+			ACLMessage msg = myAgent.receive(mt);
+			if (msg != null) {
+				// Request Message received. Process it.
+				ACLMessage reply = msg.createReply();
+				float dinero = Float.parseFloat(msg.getContent());
+				
+				// Comprobar si queremos aceptar el pago
+				// TODO De momento se cumple siempre
+				
+				if (dinero >= 5) {
+					// Aceptamos el pago
+					reply.setPerformative(ACLMessage.INFORM);
+					// Nos añadimos el dinero (?)
+					// TODO
+				} else {
+					// Rechazamos el pago
+					reply.setPerformative(ACLMessage.REFUSE);
+					reply.setContent("Fallo en el registro");
+				}
+
+				myAgent.send(reply);
 			} else {
 				block();
 			}

@@ -3,7 +3,6 @@ package agents.buyer;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -15,7 +14,6 @@ import agents.seller.Lot;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
-import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
@@ -112,6 +110,8 @@ public class BuyerAgent extends POAAgent{
 		request.setConversationId("apertura-credito");
 		
 			addBehaviour(new AchieveREInitiator(this, request) {
+				private static final long serialVersionUID = 1L;
+
 				@Override
 				protected void handleInform(ACLMessage inform) {
 					getLogger().info("Apertura cr�dito", "Se ha abierto correctamente la l�nea de cr�dito");
@@ -140,9 +140,12 @@ public class BuyerAgent extends POAAgent{
 		request.setConversationId("retirar-compras");
 		addBehaviour(new AchieveREInitiator(this, request) {
 			
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			protected void handleInform(ACLMessage inform) {
 				try {
+					@SuppressWarnings("unchecked")
 					List<Lot> lotes = (List<Lot>) inform.getContentObject();
 					lots = lotes;
 					getLogger().info("Retirar compras", "Se han retirado correctamente " + lots.toString());
@@ -161,7 +164,8 @@ public class BuyerAgent extends POAAgent{
 		request.setConversationId("subs-linea_venta");
 		request.setContent("1");
 		addBehaviour(new SubscriptionInitiator(this, request) {
-			
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			protected void handleAgree(ACLMessage agree) {
 				super.handleAgree(agree);

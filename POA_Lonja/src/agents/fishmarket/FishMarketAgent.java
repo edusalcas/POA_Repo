@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 
 import org.yaml.snakeyaml.Yaml;
@@ -28,7 +27,6 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREResponder;
-import jade.proto.FIPAProtocolNames;
 import jade.proto.SubscriptionResponder;
 import jade.proto.SubscriptionResponder.Subscription;
 import jade.proto.SubscriptionResponder.SubscriptionManager;
@@ -119,6 +117,8 @@ public class FishMarketAgent extends POAAgent {
 				AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
 				MessageTemplate.MatchConversationId("apertura-credito"));
 		this.addBehaviour(new AchieveREResponder(this, mt) {
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
 				AID sender = request.getSender();
@@ -148,6 +148,8 @@ public class FishMarketAgent extends POAAgent {
 		mt = MessageTemplate.and(AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
 				MessageTemplate.MatchConversationId("retirar-compras"));
 		addBehaviour(new AchieveREResponder(this, mt) {
+			private static final long serialVersionUID = 1L;
+
 			// TODO
 			@Override
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
@@ -169,6 +171,8 @@ public class FishMarketAgent extends POAAgent {
 		mt = MessageTemplate.and(SubscriptionResponder.createMessageTemplate(ACLMessage.SUBSCRIBE),
 				MessageTemplate.MatchConversationId("subs-linea_venta"));
 		addBehaviour(new SubscriptionResponder(this, mt) {
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			protected ACLMessage handleSubscription(ACLMessage subscription)
 					throws NotUnderstoodException, RefuseException {
@@ -278,7 +282,7 @@ public class FishMarketAgent extends POAAgent {
 						iniciarLineaVenta(randomLine);
 					reply.setContent(msg.getContent());
 					reply.setPerformative(ACLMessage.INFORM);
-					
+
 				} else {
 					// Seller isnt registered
 					reply.setPerformative(ACLMessage.REFUSE);
@@ -407,7 +411,7 @@ public class FishMarketAgent extends POAAgent {
 				case 1:
 					mt = MessageTemplate.and(
 							AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
-							MessageTemplate.MatchConversationId("realizar-puja-"+lote.getID()));
+							MessageTemplate.MatchConversationId("realizar-puja-" + lote.getID()));
 					ACLMessage reply = getAgent().receive(mt);
 					if (reply != null) {
 						// Borra el lote de la lina de ventas
@@ -417,27 +421,28 @@ public class FishMarketAgent extends POAAgent {
 						// Se actualiza la linea de credito del comprador
 						// TODO
 						// Pagar al vendedor el precio de reserva
-						// TODO
+						pagarVendedor(lote);
 						// Se responde con un inform al agente que ha realizado la puja
 						ACLMessage response = reply.createReply();
 						response.setContent("OK");
 						response.setPerformative(ACLMessage.INFORM);
 						getAgent().send(response);
-						
+
 						// Volvemos al primer paso
 						step = 0;
-						
+
 					} else {
 
 						if (System.currentTimeMillis() - t0 >= TIMEOUT) {
 							if (lote.getPrecio() == lote.getPrecioReserva()) {
-								getLogger().info("Subasta lote: "+lote.getID(), "No se ha vendido el lote: "+ lote.toString());
+								getLogger().info("Subasta lote: " + lote.getID(),
+										"No se ha vendido el lote: " + lote.toString());
 								// Borrar el lote de la linea de ventas
 								lineLots.get(lineaVentas).remove(0);
 								// Añadir el lote a la lista de reservas
 								// TODO
 								// Pagar al vendedor
-								// TODO
+								pagarVendedor(lote);
 							} else {
 								lote.setPrecio(lote.getPrecio() - 1.0f);
 							}
@@ -460,7 +465,87 @@ public class FishMarketAgent extends POAAgent {
 		}
 
 	}
-	// End of inner class Deposito de Capturas
+	// End of inner class SubastasLineaVentas
+
+	/*
+	 * Clase privada que se encarga del registro del vendedor, le manda un mensaje
+	 * tipo request y el RAV le responde si se le ha registrado correctamente o no
+	 */
+	private class RequestCobro extends Behaviour {
+		private static final long serialVersionUID = 1L;
+		private MessageTemplate mt; // The template to receive replies
+		private int step = 0;
+		private AID vendedor;
+		private float dinero;
+
+		public RequestCobro(AID vendedor, float dinero) {
+			this.vendedor = vendedor;
+			this.dinero = dinero;
+		}
+
+		@Override
+		public void action() {
+			switch (step) {
+			case 0:
+				// Enviar request al agente lonja con rol RAV
+				ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
+
+				req.addReceiver(vendedor);
+				req.setConversationId("cobro-" + vendedor);
+				req.setReplyWith("req" + System.currentTimeMillis()); // Unique value
+				req.setContent(Float.toString(dinero));
+
+				myAgent.send(req);
+				// Prepare the template
+				mt = MessageTemplate.and(MessageTemplate.MatchConversationId("cobro-" + vendedor),
+						MessageTemplate.MatchInReplyTo(req.getReplyWith()));
+				step = 1;
+				break;
+			case 1:
+				ACLMessage reply = myAgent.receive(mt);
+				if (reply != null) {
+					// Reply received
+					if (reply.getPerformative() == ACLMessage.INFORM) {
+						// Registro exitoso
+						getLogger().info("Protocolo-Cobro", "Agente " + vendedor.getLocalName() + " acepta el cobro");
+					} else {
+						// Fallo en el registro
+						getLogger().info("Protocolo-Cobro", reply.getContent());
+					}
+					step = 2;
+
+				} else {
+					block();
+				}
+				break;
+			}
+
+		}
+
+		@Override
+		public boolean done() {
+			return step == 2;
+		}
+
+	}
+	// End of inner class RequestRegistro
+
+	private void pagarVendedor(Lot lote) {
+		AID vendedor = getVendedor(lote);
+
+		sellerAgents.get(vendedor).remove(lote);
+
+		addBehaviour(new RequestCobro(vendedor, lote.getPrecioReserva()));
+
+	}
+
+	private AID getVendedor(Lot lote) {
+		for (AID vendedor : sellerAgents.keySet())
+			if (sellerAgents.get(vendedor).contains(lote))
+				return vendedor;
+
+		return null;
+	}
 
 	private void notificarLinea(int lv, Lot lote) {
 		for (Subscription s : lines.get(lv)) {

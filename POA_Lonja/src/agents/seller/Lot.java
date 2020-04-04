@@ -42,6 +42,24 @@ public class Lot implements Serializable{
 	public String toString() {
 		return "Lot [kg=" + kg + ", type=" + type + ", precio=" + precio + " ID=" + ID + "]";
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (obj instanceof Lot)
+			return false;
+		
+		Lot copy = (Lot) obj;
+		return this.ID == copy.ID;
+	}
+	
+	@Override
+	public int hashCode() {
+		return super.hashCode() + ID;
+	}
 
 	public float getKg() {
 		return kg;
