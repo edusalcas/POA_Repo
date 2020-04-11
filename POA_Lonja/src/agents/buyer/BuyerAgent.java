@@ -202,13 +202,14 @@ public class BuyerAgent extends POAAgent{
 					
 					// Si no nos interesa no hacemos nada
 				} catch (UnreadableException e) {
-					// TODO Auto-generated catch block
+					getLogger().info("Subscribirse Linea Venta", "Hubo un error al recibir el lote");
 					e.printStackTrace();
 				}
 			}
 			
 			@Override
 			protected void handleFailure(ACLMessage failure) {
+				//Creo que no tiene sentido manejar esta situacion
 				// TODO
 				super.handleFailure(failure);
 			}

@@ -154,8 +154,13 @@ public class FishMarketAgent extends POAAgent {
 			@Override
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
 					throws FailureException {
-				// TODO Actualizar tambi�n el cr�dito disponible
+				// Antes de enviar el mensaje se calcula la cantidad de dinero gastada por el comprador y se decrementa esa cantidad de su linea de credito
 				List<Lot> content = lotesComprador.get(request.getSender());
+				float cantidadGastada = 0.0f;
+				for(Lot l: content) {
+					cantidadGastada += l.getPrecio();
+				}
+				lineasCredito.put(request.getSender(), lineasCredito.get(request.getSender()) - cantidadGastada);
 				ACLMessage informDone = request.createReply();
 				informDone.setPerformative(ACLMessage.INFORM);
 				try {
@@ -198,7 +203,18 @@ public class FishMarketAgent extends POAAgent {
 
 			@Override
 			protected ACLMessage handleCancel(ACLMessage cancel) throws FailureException {
-				// TODO
+				//Tal vez habria que revisar el metodo deregister() para quitar ciertas comprobaciones ya que estas se realizan ya aqui
+				Subscription subEliminar = null;
+				externo:
+				for(Integer linea: lines.keySet()) { //Como no se puede estar suscrito a mas de una linea de vnta a la vez en cuento encontremos una subscripcion a nombre del comprador que quiere cancelar la suscripcion sabremos que esa es la unica que hay y por lo tanto no es necesario revisar el resto de suscripciones de las demas lineas de venta
+					for(Subscription s : lines.get(linea)) {
+						if(s.getMessage().getSender() == cancel.getSender()) {
+							subEliminar = s;
+							break externo;
+						}
+					}
+				}
+				subscriptionManager.deregister(subEliminar);
 				return super.handleCancel(cancel);
 			}
 		});
