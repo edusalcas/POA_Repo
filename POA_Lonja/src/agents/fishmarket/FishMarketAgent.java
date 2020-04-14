@@ -43,6 +43,7 @@ public class FishMarketAgent extends POAAgent {
 	private Manager subscriptionManager;
 	private HashMap<Integer, List<Subscription>> lines;
 	private HashMap<Integer, List<Lot>> lineLots;
+	private List<Lot> lotsReserva;
 
 	public void setup() {
 		super.setup();
@@ -84,10 +85,13 @@ public class FishMarketAgent extends POAAgent {
 		lotesComprador = new HashMap<AID, List<Lot>>();
 		lines = new HashMap<Integer, List<Subscription>>();
 		lineLots = new HashMap<Integer, List<Lot>>();
-
+		lotsReserva = new ArrayList<Lot>();
+		
+		// Creamos una linea de ventas
 		lines.put(1, new ArrayList<Subscription>());
 		lineLots.put(1, new ArrayList<Lot>());
 
+		// Manejador de las siscripciones a las lineas de venta
 		subscriptionManager = new Manager();
 
 		// Register the fish-market service in the yellow pages
@@ -150,14 +154,14 @@ public class FishMarketAgent extends POAAgent {
 		addBehaviour(new AchieveREResponder(this, mt) {
 			private static final long serialVersionUID = 1L;
 
-			// TODO
 			@Override
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
 					throws FailureException {
-				// Antes de enviar el mensaje se calcula la cantidad de dinero gastada por el comprador y se decrementa esa cantidad de su linea de credito
+				// Antes de enviar el mensaje se calcula la cantidad de dinero gastada por el
+				// comprador y se decrementa esa cantidad de su linea de credito
 				List<Lot> content = lotesComprador.get(request.getSender());
 				float cantidadGastada = 0.0f;
-				for(Lot l: content) {
+				for (Lot l : content) {
 					cantidadGastada += l.getPrecio();
 				}
 				lineasCredito.put(request.getSender(), lineasCredito.get(request.getSender()) - cantidadGastada);
@@ -203,12 +207,17 @@ public class FishMarketAgent extends POAAgent {
 
 			@Override
 			protected ACLMessage handleCancel(ACLMessage cancel) throws FailureException {
-				//Tal vez habria que revisar el metodo deregister() para quitar ciertas comprobaciones ya que estas se realizan ya aqui
+				// Tal vez habria que revisar el metodo deregister() para quitar ciertas
+				// comprobaciones ya que estas se realizan ya aqui
 				Subscription subEliminar = null;
-				externo:
-				for(Integer linea: lines.keySet()) { //Como no se puede estar suscrito a mas de una linea de vnta a la vez en cuento encontremos una subscripcion a nombre del comprador que quiere cancelar la suscripcion sabremos que esa es la unica que hay y por lo tanto no es necesario revisar el resto de suscripciones de las demas lineas de venta
-					for(Subscription s : lines.get(linea)) {
-						if(s.getMessage().getSender() == cancel.getSender()) {
+				externo: for (Integer linea : lines.keySet()) { // Como no se puede estar suscrito a mas de una linea de
+																// vnta a la vez en cuento encontremos una subscripcion
+																// a nombre del comprador que quiere cancelar la
+																// suscripcion sabremos que esa es la unica que hay y
+																// por lo tanto no es necesario revisar el resto de
+																// suscripciones de las demas lineas de venta
+					for (Subscription s : lines.get(linea)) {
+						if (s.getMessage().getSender() == cancel.getSender()) {
 							subEliminar = s;
 							break externo;
 						}
@@ -291,7 +300,8 @@ public class FishMarketAgent extends POAAgent {
 					Lot lot = new Lot(type, kg);
 					sellerAgents.get(sender).add(lot);
 
-					// TODO Seleccionamos aleatoriamente la linea de venta para ese lote
+					// Seleccionamos aleatoriamente la linea de venta para ese lote
+					// TODO de momento siempre es 1
 					int randomLine = 1;
 					lineLots.get(randomLine).add(lot);
 					if (lines.get(randomLine).size() > 1 && lineLots.get(randomLine).size() > 3)
@@ -430,12 +440,14 @@ public class FishMarketAgent extends POAAgent {
 							MessageTemplate.MatchConversationId("realizar-puja-" + lote.getID()));
 					ACLMessage reply = getAgent().receive(mt);
 					if (reply != null) {
+						AID sender = reply.getSender();
 						// Borra el lote de la lina de ventas
 						lineLots.get(lineaVentas).remove(0);
 						// Se añade el lote a la lista de lotes del comprador
-						// TODO
+						lotesComprador.get(sender).add(lote);
 						// Se actualiza la linea de credito del comprador
-						// TODO
+						float lc = lineasCredito.get(sender);
+						lineasCredito.put(sender, lc - lote.getPrecio());
 						// Pagar al vendedor el precio de reserva
 						pagarVendedor(lote);
 						// Se responde con un inform al agente que ha realizado la puja
@@ -456,7 +468,7 @@ public class FishMarketAgent extends POAAgent {
 								// Borrar el lote de la linea de ventas
 								lineLots.get(lineaVentas).remove(0);
 								// Añadir el lote a la lista de reservas
-								// TODO
+								lotsReserva.add(lote);
 								// Pagar al vendedor
 								pagarVendedor(lote);
 							} else {
@@ -471,13 +483,16 @@ public class FishMarketAgent extends POAAgent {
 
 					break;
 				}
+			} else {
+				cerrarLinea(lineaVentas);
+				step = 2;
 			}
 
 		}
 
 		@Override
 		public boolean done() {
-			return lineLots.get(lineaVentas).isEmpty();
+			return step == 2;
 		}
 
 	}
@@ -576,6 +591,16 @@ public class FishMarketAgent extends POAAgent {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+
+			s.notify(notification);
+		}
+	}
+
+	private void cerrarLinea(int lv) {
+		for (Subscription s : lines.get(lv)) {
+
+			ACLMessage notification = s.getMessage().createReply();
+			notification.setPerformative(ACLMessage.FAILURE);
 
 			s.notify(notification);
 		}

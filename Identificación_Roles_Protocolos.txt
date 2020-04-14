@@ -20,7 +20,7 @@ ROLES:
 PROTOCOLOS QUE IMPLICAN AL VENDEDOR:
     X Registro del vendedor (protocolo-registro-vendedor) --> RV > RAV
     X Depósito de capturas a vender (protocolo-deposito) --> RV > RRV
-    - Recepción del pago por las ventas realizadas (protocolo-cobro) --> RGV > RV
+    X Recepción del pago por las ventas realizadas (protocolo-cobro) --> RGV > RV
 
         Nota: En todo caso, también debería contemplarse la
         acción por parte del RV de ignorar intentos de pago por parte del agente
@@ -28,11 +28,11 @@ PROTOCOLOS QUE IMPLICAN AL VENDEDOR:
         cero su cuenta en la lonja retirando todos los fondos.
 
 PROTOCOLOS QUE IMPLICAN AL COMPRADOR:
-    - Admisión del RC en la ¿subasta? (protocolo-admisión-comprador) --> RC > RRC
-    - Apertura de crédito (protocolo-apertura-crédito) --> RC > RGC
-    - Protocolo de retirada de artículos (protocolo-retirada-compras) --> RC > RGC
+    X Admisión del RC en la ¿subasta? (protocolo-admisión-comprador) --> RC > RRC
+    X Apertura de crédito (protocolo-apertura-crédito) --> RC > RGC
+    X Protocolo de retirada de artículos (protocolo-retirada-compras) --> RC > RGC
     - Protocolo de subasta (protocolo-subasta) --> ¿RRV? > RS > RC
-    ¿- Protocolo pujar en la subasta (protocolo-pujar) --> RS > RC?
+    X Protocolo pujar en la subasta (protocolo-pujar) --> RS > RC
 
 RELACIONES PROTOCOLOS-FIPA:
     - (protocolo-deposito) --> fipa-request

@@ -28,6 +28,8 @@ public class SellerAgent extends POAAgent {
 	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME);
 	private ArrayList<Lot> lots;
 
+	private float dinero; 
+	
 	public void setup() {
 		super.setup();
 
@@ -71,6 +73,8 @@ public class SellerAgent extends POAAgent {
 		// Add the lots to the agent
 		addLotsFromConfig(config);
 
+		dinero = 0.0f;
+		
 		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistro());
 
@@ -239,20 +243,20 @@ public class SellerAgent extends POAAgent {
 			if (msg != null) {
 				// Request Message received. Process it.
 				ACLMessage reply = msg.createReply();
-				float dinero = Float.parseFloat(msg.getContent());
+				float precio = Float.parseFloat(msg.getContent());
 				
 				// Comprobar si queremos aceptar el pago
 				// TODO De momento se cumple siempre
 				
-				if (dinero >= 5) {
+				if (precio >= 5) {
 					// Aceptamos el pago
 					reply.setPerformative(ACLMessage.INFORM);
-					// Nos añadimos el dinero (?)
-					// TODO
+					// Nos añadimos el dinero
+					dinero += precio;
 				} else {
 					// Rechazamos el pago
 					reply.setPerformative(ACLMessage.REFUSE);
-					reply.setContent("Fallo en el registro");
+					reply.setContent("No se acepta el dinero");
 				}
 
 				myAgent.send(reply);

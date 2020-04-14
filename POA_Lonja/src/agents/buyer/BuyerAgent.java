@@ -210,7 +210,7 @@ public class BuyerAgent extends POAAgent{
 			@Override
 			protected void handleFailure(ACLMessage failure) {
 				//Creo que no tiene sentido manejar esta situacion
-				// TODO
+				getLogger().info("Linea de venta cerrada", "LV cerrada para el comprador " + myAgent.getLocalName());
 				super.handleFailure(failure);
 			}
 			
