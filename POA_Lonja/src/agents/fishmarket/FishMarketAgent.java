@@ -35,18 +35,25 @@ import jade.proto.SubscriptionResponder.SubscriptionManager;
 
 public class FishMarketAgent extends POAAgent {
 
+	// ---------------------------------//
+	// ------------Variables------------//
+	// ---------------------------------//
 	private static final long serialVersionUID = 1L;
-	// The list of know seller agents
-	private HashMap<AID, List<Lot>> sellerAgents;
 
-	private ArrayList<AID> buyerAgents;
-	private HashMap<AID, Float> lineasCredito;
-	private HashMap<AID, List<Lot>> lotesComprador;
-	private Manager subscriptionManager;
-	private HashMap<Integer, List<Subscription>> lines;
-	private HashMap<Integer, List<Lot>> lineLots;
-	private List<Lot> lotsReserva;
+	private HashMap<AID, List<Lot>> sellerAgents; // Agentes vendedores y sus lotes
+	private HashMap<AID, Float> lineasCredito; // Lineas de credito de cada comprador
+	private HashMap<AID, List<Lot>> lotesComprador; // Lotes que cada comprador ha comprado
+	private HashMap<Integer, List<Subscription>> lines; // Lineas de venta y los suscriptores de cada uno
+	private HashMap<Integer, List<Lot>> lineLots; // Lotes en cada linea de venta
+	
+	private List<AID> buyerAgents; // Agentes compradores
+	private List<Lot> lotsReserva; // Lotes que no se han vendido
 
+	private Manager subscriptionManager; // Manejador de las suscripciones por parte de los compradores a las lineas de venta
+
+	// ---------------------------------//
+	// ------------Funciones------------//
+	// ---------------------------------//
 	public void setup() {
 		super.setup();
 		Object[] args = getArguments();
@@ -63,6 +70,20 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 
+	@Override
+	public void takeDown() {
+		// Deregister from the yellow pages
+		try {
+			DFService.deregister(this);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+
+		// Printout a dismissal message
+		System.out.println("Buyer-agent " + getAID().getName() + " terminating.");
+		super.takeDown();
+	}
+	
 	private FishMarketAgentConfig initAgentFromConfigFile(String fileName) {
 		FishMarketAgentConfig config = null;
 		try {
@@ -77,7 +98,11 @@ public class FishMarketAgent extends POAAgent {
 		return config;
 	}
 
+	/*
+	 * Funcion encargada de inicializar el agente lonja
+	 */
 	private void init(FishMarketAgentConfig config) {
+		// Anunciamos que el agente ha sido creado
 		System.out.println("Soy el agente lonja " + this.getName());
 
 		// Initialize variables
@@ -109,6 +134,7 @@ public class FishMarketAgent extends POAAgent {
 			fe.printStackTrace();
 		}
 
+		// Añadimos los Behaviours
 		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistroVendedor());
 		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de
@@ -185,7 +211,7 @@ public class FishMarketAgent extends POAAgent {
 			}
 		});
 
-		// Protocolo Subscripci�n L�nea-Venta
+		// Protocolo Subscripcion Linea-Venta
 		mt = MessageTemplate.and(SubscriptionResponder.createMessageTemplate(ACLMessage.SUBSCRIBE),
 				MessageTemplate.MatchConversationId("subs-linea_venta"));
 		addBehaviour(new SubscriptionResponder(this, mt) {

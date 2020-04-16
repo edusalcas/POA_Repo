@@ -3,20 +3,29 @@ package agents.buyer;
 import java.util.List;
 
 public class BuyerAgentConfig {
-	private float budget;
-	private List<Item> items;
-	
+	// ---------------------------------//
+	// ------------Variables------------//
+	// ---------------------------------//
+	private float budget; // Cantidad de dinero disponible
+	private List<Item> items; // Lotes que tiene el comprador
+
+	// ---------------------------------//
+	// ---------Override methods--------//
+	// ---------------------------------//
+	@Override
+	public String toString() {
+		return "BuyerAgentConfig [budget=" + budget + "]";
+	}
+
+	// ---------------------------------//
+	// --------Getters & Setters--------//
+	// ---------------------------------//
 	public List<Item> getItems() {
 		return items;
 	}
 
 	public void setItems(List<Item> items) {
 		this.items = items;
-	}
-
-	@Override
-	public String toString() {
-		return "BuyerAgentConfig [budget=" + budget + "]";
 	}
 
 	public float getBudget() {

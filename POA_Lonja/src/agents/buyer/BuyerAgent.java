@@ -31,7 +31,6 @@ public class BuyerAgent extends POAAgent {
 	// ---------------------------------//
 	// ------------Variables------------//
 	// ---------------------------------//
-
 	private static final long serialVersionUID = 1L;
 	private final int PROB_PUJAR = 50; // Probabilidad del comprador para pujar por un lote
 
@@ -102,6 +101,13 @@ public class BuyerAgent extends POAAgent {
 		// Anunciamos que el agente ha sido creado
 		System.out.println("Soy el agente comprador " + this.getName());
 
+		// Introducimos los valores de configuracion en nuestro agente
+		this.budget = config.getBudget();
+		this.listaCompra = config.getItems();
+
+		// Inicializamos atributos
+		lots = new LinkedList<Lot>();
+
 		// Registramos el agente comprador en las paginas amarillas
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -114,13 +120,6 @@ public class BuyerAgent extends POAAgent {
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
-
-		// Introducimos los valores de configuracion en nuestro agente
-		this.budget = config.getBudget();
-		this.listaCompra = config.getItems();
-
-		// Inicializamos atributos
-		lots = new LinkedList<Lot>();
 
 		// Añadimos los Behaviours
 		// (protocolo-admision-comprador)
