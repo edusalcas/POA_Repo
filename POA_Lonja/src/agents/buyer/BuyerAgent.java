@@ -3,6 +3,7 @@ package agents.buyer;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -39,7 +40,11 @@ public class BuyerAgent extends POAAgent{
 	
 	private boolean registered;
 	
-	private final int PROB_PUJAR = 92;
+	private final int PROB_PUJAR = 50;
+	
+	private List<Item> listaCompra;
+	
+	private SubscriptionInitiator initiator;
 	
 	
 	public void setup() {
@@ -96,6 +101,7 @@ public class BuyerAgent extends POAAgent{
 
 		// Introducimos los valores de configuraci�n en nuestro agente
 		this.budget = config.getBudget();
+		this.listaCompra = config.getItems();
 
 		// A�adimos los Behaviours
 
@@ -155,6 +161,12 @@ public class BuyerAgent extends POAAgent{
 				
 			}
 			
+			@Override
+			protected void handleRefuse(ACLMessage refuse) {
+				getLogger().info("Retirar compras", refuse.getContent());
+				super.handleRefuse(refuse);
+			}
+			
 		});
 		
 		//Subscribirse a Linea-Venta
@@ -163,7 +175,7 @@ public class BuyerAgent extends POAAgent{
 		request.addReceiver(lonjaAgent);
 		request.setConversationId("subs-linea_venta");
 		request.setContent("1");
-		addBehaviour(new SubscriptionInitiator(this, request) {
+		initiator = new SubscriptionInitiator(this, request) {
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -189,7 +201,7 @@ public class BuyerAgent extends POAAgent{
 					Random rand = new Random();
 					int valor = rand.nextInt(100);
 					
-					if (valor >= PROB_PUJAR) {
+					if (itemRequerido(lote.getType()) && valor >= PROB_PUJAR) {
 						// Si nos interesa, llamar a un behaviour para realizar un FIPA-Request aceptando la subasta
 						ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
 						request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
@@ -214,7 +226,8 @@ public class BuyerAgent extends POAAgent{
 				super.handleFailure(failure);
 			}
 			
-		});
+		};
+		addBehaviour(initiator);
 
 	}
 	
@@ -287,11 +300,52 @@ public class BuyerAgent extends POAAgent{
 		@Override
 		protected void handleInform(ACLMessage inform) {
 			getLogger().info("Subasta lote: "+lote.getID(), "La lonja ha aceptado la puja por el paquete");
+			//Restamos la cantidad de producto obtenida
+			if(actualizarListaCompra(lote)) {
+				getLogger().info("Subasta lote: "+lote.getID(), "El agente "+getAgent().getLocalName()+" ha cumplido con su lista de la compra");
+				
+				getAgent().doDelete();
+			}
+			
 
 		}
 		
 	}
 
+	private boolean itemRequerido(String producto) {
+		for(Item item : this.listaCompra) {
+			if(item.getName().equals(producto)) return true;
+		}
+		return false;
+	}
 	
+	private boolean actualizarListaCompra(Lot lote) {
+		
+		Iterator<Item> it =  listaCompra.iterator();
+		while(it.hasNext()) {
+			Item item = it.next();
+			if(item.getName().equals(lote.getType())) {
+				if((item.getCantidad() - lote.getKg()) <= 0) {
+					it.remove();
+				} else item.setCantidad(item.getCantidad() - lote.getKg());
+				break;
+			}
+		}
+		return listaCompra.isEmpty();
+	}
+	
+	@Override
+	public void takeDown() {
+		// Deregister from the yellow pages
+		try {
+			initiator.cancel(lonjaAgent, true);
+			DFService.deregister(this);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
 
+		// Printout a dismissal message
+		System.out.println("Buyer-agent " + getAID().getName() + " terminating.");
+		super.takeDown();
+	}
 }

@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Random;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -23,6 +24,7 @@ import jade.lang.acl.MessageTemplate;
 public class SellerAgent extends POAAgent {
 
 	private static final long serialVersionUID = 1L;
+	private final int PROB = 10;
 	private GuiVendedor myGui;
 
 	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME);
@@ -247,8 +249,9 @@ public class SellerAgent extends POAAgent {
 				
 				// Comprobar si queremos aceptar el pago
 				// TODO De momento se cumple siempre
-				
-				if (precio >= 5) {
+				Random rand = new Random();
+				int randonResponse = rand.nextInt(100);
+				if (randonResponse >= PROB) {
 					// Aceptamos el pago
 					reply.setPerformative(ACLMessage.INFORM);
 					// Nos añadimos el dinero
