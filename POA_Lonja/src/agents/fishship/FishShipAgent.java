@@ -5,10 +5,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.List;
 
 import org.yaml.snakeyaml.Yaml;
 
 import agents.POAAgent;
+import agents.seller.Lot;
+import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
@@ -24,7 +27,9 @@ public class FishShipAgent extends POAAgent {
 	// ------------Variables------------//
 	// ---------------------------------//
 	private static final long serialVersionUID = 1L;
-
+	List<Lot> lots;
+	AID vendedor;
+ 
 	// ---------------------------------//
 	// ------------Funciones------------//
 	// ---------------------------------//
@@ -80,7 +85,8 @@ public class FishShipAgent extends POAAgent {
 		System.out.println("Soy el agente lonja " + this.getName());
 
 		// Initialize variables
-
+		lots = config.getLots();
+		vendedor = new AID(config.getSeller(), AID.ISLOCALNAME);
 		// Register the fish-ship service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -99,10 +105,9 @@ public class FishShipAgent extends POAAgent {
 		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
 		try {
 			request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-			// TODO request.addReceiver(sellerAgent);
+			request.addReceiver(vendedor);
 			request.setContentObject(seleccionarMercancia());
-			// TODO request.setConversationId("entrega-mercancia-" +
-			// sellerAgent.getAID().getLocalName());
+			request.setConversationId("entrega-mercancia-" + vendedor.getLocalName());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -120,7 +125,8 @@ public class FishShipAgent extends POAAgent {
 	 */
 	private Serializable seleccionarMercancia() {
 		// TODO Seleccionar la mercancia que le vamos a entregar al vendedor
-		return null;
+		
+		return (Serializable)lots;
 	}
 
 	// ---------------------------------//

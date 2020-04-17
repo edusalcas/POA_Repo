@@ -43,30 +43,20 @@ public class SellerAgent extends POAAgent {
 	public void setup() {
 		super.setup();
 
-		Object[] args = getArguments();
-		if (args != null && args.length == 1) {
-			String configFile = (String) args[0];
-			SellerAgentConfig config = initAgentFromConfigFile(configFile);
-
-			if (config != null) {
-				init(config);
-			} else {
-				doDelete();
-			}
-		} else {
-			getLogger().info("ERROR", "Requiere fichero de cofiguración.");
-			doDelete();
-		}
+		init();
 	}
 
-	private void init(SellerAgentConfig config) {
+	private void init() {
 
 		System.out.println("Soy el agente vendedor " + this.getName());
 
 		// Create and show the GUI
 		myGui = new GuiVendedor(this);
 		myGui.showGui();
-
+		
+		//Inicializar variables
+		lots = new ArrayList<Lot>();
+		dinero = 00.0f;
 		// Register the selling-agent service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -79,11 +69,6 @@ public class SellerAgent extends POAAgent {
 		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
-
-		// Add the lots to the agent
-		addLotsFromConfig(config);
-
-		dinero = 0.0f;
 		
 		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistro());
@@ -102,23 +87,6 @@ public class SellerAgent extends POAAgent {
 		addBehaviour(new SuministroMercanciaResponder(this, mt));
 	}
 
-	private void addLotsFromConfig(SellerAgentConfig config) {
-		lots = (ArrayList<Lot>) config.lots;
-	}
-
-	private SellerAgentConfig initAgentFromConfigFile(String fileName) {
-		SellerAgentConfig config = null;
-		try {
-			Yaml yaml = new Yaml();
-			InputStream inputStream;
-			inputStream = new FileInputStream(fileName);
-			config = yaml.load(inputStream);
-			getLogger().info("initAgentFromConfigFile", config.toString());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		return config;
-	}
 
 	public void nuevaMercancia(String type, float kg) {
 		System.out.println("Nuevo paquete de mercancia con " + kg + "kg de " + type);

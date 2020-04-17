@@ -288,6 +288,7 @@ public class BuyerAgent extends POAAgent {
 	 * Clase privada encargada de la comunicacion con el RGC para retirar los lotes
 	 * que el comprador ya ha comprado en las lineas de ventas.
 	 */
+	//TODO Hacerlo ciclico
 	private class RetirarCompras extends AchieveREInitiator {
 
 		private static final long serialVersionUID = 1L;
@@ -384,6 +385,7 @@ public class BuyerAgent extends POAAgent {
 		// Función encargada de manejar la llegada de un FAILURE
 		@Override
 		protected void handleFailure(ACLMessage failure) {
+			//TODO Terminar Agente
 			// Creo que no tiene sentido manejar esta situacion
 			getLogger().info("Linea de venta cerrada", "LV cerrada para el comprador " + myAgent.getLocalName());
 			super.handleFailure(failure);

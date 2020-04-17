@@ -73,7 +73,7 @@ public class ScenarioLauncher {
 							buyerConfigArg);
 					b.start();
 				}
-				
+				/*
 				// Sellers
 				List<AgentRefConfig> sellers = scenario.getSellers();
 				for(AgentRefConfig seller: sellers) {
@@ -83,6 +83,30 @@ public class ScenarioLauncher {
 							seller.getName(), 
 							agents.seller.SellerAgent.class.getName(), 
 							buyerConfigArg);
+					b.start();
+				}*/
+				
+				//Sellers New
+				List<AgentRefConfig> sellers = scenario.getSellers();
+				for(AgentRefConfig seller: sellers) {
+					System.out.println(seller);
+					AgentController b = mc.createNewAgent(
+							seller.getName(), 
+							agents.seller.SellerAgent.class.getName(), 
+							null);
+					b.start();
+				}
+				
+				// FishShips
+				List<AgentRefConfig> fishShips = scenario.getFishShips();
+				for(AgentRefConfig fishShip: fishShips) {
+					System.out.println(fishShip);
+					Object[] fishShipConfigArg = {fishShip.getConfig()};
+					AgentController b = mc.createNewAgent(
+							fishShip.getName(), 
+							agents.fishship.FishShipAgent.class.getName(),
+							//agents.seller.SellerAgent.class.getName(), 
+							fishShipConfigArg);
 					b.start();
 				}
 			}
