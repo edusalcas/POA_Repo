@@ -16,6 +16,7 @@ import org.yaml.snakeyaml.Yaml;
 import agents.POAAgent;
 import agents.seller.Lot;
 import jade.core.AID;
+import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
@@ -26,6 +27,7 @@ import jade.domain.FIPAAgentManagement.FailureException;
 import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.introspection.SuspendedAgent;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREResponder;
@@ -45,11 +47,12 @@ public class FishMarketAgent extends POAAgent {
 	private HashMap<AID, List<Lot>> lotesComprador; // Lotes que cada comprador ha comprado
 	private HashMap<Integer, List<Subscription>> lines; // Lineas de venta y los suscriptores de cada uno
 	private HashMap<Integer, List<Lot>> lineLots; // Lotes en cada linea de venta
-	
+
 	private List<AID> buyerAgents; // Agentes compradores
 	private List<Lot> lotsReserva; // Lotes que no se han vendido
 
-	private Manager subscriptionManager; // Manejador de las suscripciones por parte de los compradores a las lineas de venta
+	private Manager subscriptionManager; // Manejador de las suscripciones por parte de los compradores a las lineas de
+											// venta
 
 	// ---------------------------------//
 	// ------------Funciones------------//
@@ -80,10 +83,10 @@ public class FishMarketAgent extends POAAgent {
 		}
 
 		// Printout a dismissal message
-		System.out.println("Buyer-agent " + getAID().getName() + " terminating.");
+		System.out.println("FishMarket-agent " + getAID().getName() + " terminating.");
 		super.takeDown();
 	}
-	
+
 	private FishMarketAgentConfig initAgentFromConfigFile(String fileName) {
 		FishMarketAgentConfig config = null;
 		try {
@@ -113,7 +116,7 @@ public class FishMarketAgent extends POAAgent {
 		lines = new HashMap<Integer, List<Subscription>>();
 		lineLots = new HashMap<Integer, List<Lot>>();
 		lotsReserva = new ArrayList<Lot>();
-		
+
 		// Creamos una linea de ventas
 		lines.put(1, new ArrayList<Subscription>());
 		lineLots.put(1, new ArrayList<Lot>());
@@ -148,130 +151,77 @@ public class FishMarketAgent extends POAAgent {
 		MessageTemplate mt = MessageTemplate.and(
 				AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
 				MessageTemplate.MatchConversationId("apertura-credito"));
-		this.addBehaviour(new AchieveREResponder(this, mt) {
-			private static final long serialVersionUID = 1L;
+		this.addBehaviour(new AperturaCreditoResponder(this, mt));
 
-			@Override
-			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
-				AID sender = request.getSender();
-				if (!buyerAgents.contains(sender)) {
-					ACLMessage response = request.createReply();
-					response.setPerformative(ACLMessage.REFUSE);
-					response.setContent("not registered");
-					return response;
-				}
-				ACLMessage response = request.createReply();
-				response.setPerformative(ACLMessage.AGREE);
-				return response;
-			}
-
-			@Override
-			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
-					throws FailureException {
-				lineasCredito.put(request.getSender(), Float.valueOf(request.getContent()));
-				ACLMessage informDone = request.createReply();
-				informDone.setPerformative(ACLMessage.INFORM);
-				informDone.setContent("OK");
-				return informDone;
-			}
-		});
-
-		// protocolo retirada compras
+		// (protocolo-retirada-compras)
 		mt = MessageTemplate.and(AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
 				MessageTemplate.MatchConversationId("retirar-compras"));
-		addBehaviour(new AchieveREResponder(this, mt) {
-			private static final long serialVersionUID = 1L;
+		addBehaviour(new RetiradaComprasResponder(this, mt));
 
-			@Override
-			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
-					throws FailureException {
-				// Antes de enviar el mensaje se calcula la cantidad de dinero gastada por el
-				// comprador y se decrementa esa cantidad de su linea de credito
-				List<Lot> content = lotesComprador.get(request.getSender());
-				float cantidadGastada = 0.0f;
-				for (Lot l : content) {
-					cantidadGastada += l.getPrecio();
-				}
-				ACLMessage informDone;
-				if(lineasCredito.get(request.getSender()) == null) {
-					informDone = request.createReply();
-					informDone.setPerformative(ACLMessage.REFUSE);
-					informDone.setContent("Debes abrir una linea de credito antes de poder retirar tus compras");
-					return informDone;
-				}
-				lineasCredito.put(request.getSender(), lineasCredito.get(request.getSender()) - cantidadGastada);
-				informDone = request.createReply();
-				informDone.setPerformative(ACLMessage.INFORM);
-				try {
-					informDone.setContentObject((Serializable) content);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				return informDone;
-			}
-		});
-
-		// Protocolo Subscripcion Linea-Venta
+		// (protocolo-subscripcion-linea-ventas)
 		mt = MessageTemplate.and(SubscriptionResponder.createMessageTemplate(ACLMessage.SUBSCRIBE),
 				MessageTemplate.MatchConversationId("subs-linea_venta"));
-		addBehaviour(new SubscriptionResponder(this, mt) {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected ACLMessage handleSubscription(ACLMessage subscription)
-					throws NotUnderstoodException, RefuseException {
-				ACLMessage response;
-
-				if (subscriptionManager.register(createSubscription(subscription))) {
-					response = subscription.createReply();
-					response.setPerformative(ACLMessage.AGREE);
-
-					int linea = Integer.parseInt(subscription.getContent());
-
-					if (lines.get(linea).size() > 1 && lineLots.get(linea).size() > 3)
-						iniciarLineaVenta(linea);
-
-				} else {
-					response = subscription.createReply();
-					response.setPerformative(ACLMessage.REFUSE);
-					response.setContent("Ha habido un error en el proceso de suscripcion");
-				}
-
-				return response;
-			}
-
-			@Override
-			protected ACLMessage handleCancel(ACLMessage cancel) throws FailureException {
-				// Tal vez habria que revisar el metodo deregister() para quitar ciertas
-				// comprobaciones ya que estas se realizan ya aqui
-				
-				for (Integer linea : lines.keySet()) { // Como no se puede estar suscrito a mas de una linea de
-																// vnta a la vez en cuento encontremos una subscripcion
-																// a nombre del comprador que quiere cancelar la
-																// suscripcion sabremos que esa es la unica que hay y
-																// por lo tanto no es necesario revisar el resto de
-																// suscripciones de las demas lineas de venta
-					for (Subscription s : lines.get(linea)) {
-						AID sender = s.getMessage().getSender();
-						AID cancelSender = cancel.getSender();
-						if (s.getMessage().getSender().equals(cancel.getSender())) {
-							subscriptionManager.deregister(s);
-							return super.handleCancel(cancel);
-						}
-					}
-				}
-				
-				return super.handleCancel(cancel);
-			}
-		});
+		addBehaviour(new SuscripcionLineaVentasResponder(this, mt));
 
 	}
+
+	// ---------------------------------//
+	// -------Funciones privadas--------//
+	// ---------------------------------//
 
 	private void iniciarLineaVenta(int linea) {
 		getLogger().info("Inicio subasta", "Ha dado comienzo la subasta de la linea " + linea);
 		addBehaviour(new SubastasLineaVentas(linea));
 	}
 
+	private void pagarVendedor(Lot lote) {
+		AID vendedor = getVendedor(lote);
+
+		sellerAgents.get(vendedor).remove(lote);
+
+		addBehaviour(new RequestCobro(vendedor, lote.getPrecioReserva()));
+
+	}
+
+	private AID getVendedor(Lot lote) {
+		for (AID vendedor : sellerAgents.keySet())
+			if (sellerAgents.get(vendedor).contains(lote))
+				return vendedor;
+
+		return null;
+	}
+
+	private void notificarLinea(int lv, Lot lote) {
+		for (Subscription s : lines.get(lv)) {
+
+			ACLMessage notification = s.getMessage().createReply();
+			notification.setPerformative(ACLMessage.INFORM);
+			// Poner como contenido el lote que se subasta (tipo, cantidad, precio)
+
+			try {
+				notification.setContentObject(lote);
+			} catch (IOException e) {
+				getLogger().info("Subasta Linea Venta", "No se ha podido a�adir el lote a un mensaje de notificacion");
+				e.printStackTrace();
+			}
+
+			s.notify(notification);
+		}
+	}
+
+	private void cerrarLinea(int lv) {
+		for (Subscription s : lines.get(lv)) {
+
+			ACLMessage notification = s.getMessage().createReply();
+			notification.setPerformative(ACLMessage.FAILURE);
+
+			s.notify(notification);
+		}
+	}
+
+	// ---------------------------------//
+	// ---------Clases privadas---------//
+	// ---------------------------------//
 	/*
 	 * Clase privada que se encarga de recibir los mensajes tipo request del
 	 * vendedor para registrarse en la lonja. En caso de que el vendedor aun no este
@@ -397,6 +347,132 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 	// End of inner class RequestRegistroVendedor
+
+	private class AperturaCreditoResponder extends AchieveREResponder {
+
+		private static final long serialVersionUID = 1L;
+
+		public AperturaCreditoResponder(Agent a, MessageTemplate mt) {
+			super(a, mt);
+		}
+
+		@Override
+		protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
+			AID sender = request.getSender();
+			if (!buyerAgents.contains(sender)) {
+				ACLMessage response = request.createReply();
+				response.setPerformative(ACLMessage.REFUSE);
+				response.setContent("not registered");
+				return response;
+			}
+			ACLMessage response = request.createReply();
+			response.setPerformative(ACLMessage.AGREE);
+			return response;
+		}
+
+		@Override
+		protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
+				throws FailureException {
+			lineasCredito.put(request.getSender(), Float.valueOf(request.getContent()));
+			ACLMessage informDone = request.createReply();
+			informDone.setPerformative(ACLMessage.INFORM);
+			informDone.setContent("OK");
+			return informDone;
+		}
+	}
+
+	private class RetiradaComprasResponder extends AchieveREResponder {
+
+		private static final long serialVersionUID = 1L;
+
+		public RetiradaComprasResponder(Agent a, MessageTemplate mt) {
+			super(a, mt);
+		}
+
+		@Override
+		protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response)
+				throws FailureException {
+			// Antes de enviar el mensaje se calcula la cantidad de dinero gastada por el
+			// comprador y se decrementa esa cantidad de su linea de credito
+			List<Lot> content = lotesComprador.get(request.getSender());
+			float cantidadGastada = 0.0f;
+			for (Lot l : content) {
+				cantidadGastada += l.getPrecio();
+			}
+			ACLMessage informDone;
+			if (lineasCredito.get(request.getSender()) == null) {
+				informDone = request.createReply();
+				informDone.setPerformative(ACLMessage.REFUSE);
+				informDone.setContent("Debes abrir una linea de credito antes de poder retirar tus compras");
+				return informDone;
+			}
+			lineasCredito.put(request.getSender(), lineasCredito.get(request.getSender()) - cantidadGastada);
+			informDone = request.createReply();
+			informDone.setPerformative(ACLMessage.INFORM);
+			try {
+				informDone.setContentObject((Serializable) content);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return informDone;
+		}
+	}
+
+	private class SuscripcionLineaVentasResponder extends SubscriptionResponder {
+
+		private static final long serialVersionUID = 1L;
+
+		public SuscripcionLineaVentasResponder(Agent a, MessageTemplate mt) {
+			super(a, mt);
+		}
+
+		@Override
+		protected ACLMessage handleSubscription(ACLMessage subscription)
+				throws NotUnderstoodException, RefuseException {
+			ACLMessage response;
+
+			if (subscriptionManager.register(createSubscription(subscription))) {
+				response = subscription.createReply();
+				response.setPerformative(ACLMessage.AGREE);
+
+				int linea = Integer.parseInt(subscription.getContent());
+
+				if (lines.get(linea).size() > 1 && lineLots.get(linea).size() > 3)
+					iniciarLineaVenta(linea);
+
+			} else {
+				response = subscription.createReply();
+				response.setPerformative(ACLMessage.REFUSE);
+				response.setContent("Ha habido un error en el proceso de suscripcion");
+			}
+
+			return response;
+		}
+
+		@Override
+		protected ACLMessage handleCancel(ACLMessage cancel) throws FailureException {
+			// Tal vez habria que revisar el metodo deregister() para quitar ciertas
+			// comprobaciones ya que estas se realizan ya aqui
+
+			for (Integer linea : lines.keySet()) { // Como no se puede estar suscrito a mas de una linea de
+													// vnta a la vez en cuento encontremos una subscripcion
+													// a nombre del comprador que quiere cancelar la
+													// suscripcion sabremos que esa es la unica que hay y
+													// por lo tanto no es necesario revisar el resto de
+													// suscripciones de las demas lineas de venta
+				for (Subscription s : lines.get(linea)) {
+					AID sender = s.getMessage().getSender();
+					AID cancelSender = cancel.getSender();
+					if (s.getMessage().getSender().equals(cancel.getSender())) {
+						subscriptionManager.deregister(s);
+						return super.handleCancel(cancel);
+					}
+				}
+			}
+
+			return super.handleCancel(cancel);
+		}
+	}
 
 	/*
 	 * Clase privada necesaria para el protocolo suscribir en linea de venta,
@@ -599,48 +675,4 @@ public class FishMarketAgent extends POAAgent {
 	}
 	// End of inner class RequestRegistro
 
-	private void pagarVendedor(Lot lote) {
-		AID vendedor = getVendedor(lote);
-
-		sellerAgents.get(vendedor).remove(lote);
-
-		addBehaviour(new RequestCobro(vendedor, lote.getPrecioReserva()));
-
-	}
-
-	private AID getVendedor(Lot lote) {
-		for (AID vendedor : sellerAgents.keySet())
-			if (sellerAgents.get(vendedor).contains(lote))
-				return vendedor;
-
-		return null;
-	}
-
-	private void notificarLinea(int lv, Lot lote) {
-		for (Subscription s : lines.get(lv)) {
-
-			ACLMessage notification = s.getMessage().createReply();
-			notification.setPerformative(ACLMessage.INFORM);
-			// Poner como contenido el lote que se subasta (tipo, cantidad, precio)
-
-			try {
-				notification.setContentObject(lote);
-			} catch (IOException e) {
-				getLogger().info("Subasta Linea Venta", "No se ha podido a�adir el lote a un mensaje de notificacion");
-				e.printStackTrace();
-			}
-
-			s.notify(notification);
-		}
-	}
-
-	private void cerrarLinea(int lv) {
-		for (Subscription s : lines.get(lv)) {
-
-			ACLMessage notification = s.getMessage().createReply();
-			notification.setPerformative(ACLMessage.FAILURE);
-
-			s.notify(notification);
-		}
-	}
 }
