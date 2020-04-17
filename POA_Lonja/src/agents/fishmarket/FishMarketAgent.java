@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
@@ -27,13 +26,13 @@ import jade.domain.FIPAAgentManagement.FailureException;
 import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.introspection.SuspendedAgent;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREResponder;
 import jade.proto.SubscriptionResponder;
 import jade.proto.SubscriptionResponder.Subscription;
 import jade.proto.SubscriptionResponder.SubscriptionManager;
+import utils.MessageCreator;
 
 public class FishMarketAgent extends POAAgent {
 
@@ -148,20 +147,13 @@ public class FishMarketAgent extends POAAgent {
 		addBehaviour(new RequestAdmisionComprador());
 
 		// (protocolo-apertura-credito)
-		MessageTemplate mt = MessageTemplate.and(
-				AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
-				MessageTemplate.MatchConversationId("apertura-credito"));
-		this.addBehaviour(new AperturaCreditoResponder(this, mt));
+		this.addBehaviour(new AperturaCreditoResponder(this, MessageCreator.msgAperturaCreditoResponder()));
 
 		// (protocolo-retirada-compras)
-		mt = MessageTemplate.and(AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
-				MessageTemplate.MatchConversationId("retirar-compras"));
-		addBehaviour(new RetiradaComprasResponder(this, mt));
+		addBehaviour(new RetiradaComprasResponder(this, MessageCreator.msgRetiradaComprasResponder()));
 
 		// (protocolo-subscripcion-linea-ventas)
-		mt = MessageTemplate.and(SubscriptionResponder.createMessageTemplate(ACLMessage.SUBSCRIBE),
-				MessageTemplate.MatchConversationId("subs-linea_venta"));
-		addBehaviour(new SuscripcionLineaVentasResponder(this, mt));
+		addBehaviour(new SuscripcionLineaVentasResponder(this, MessageCreator.msgSuscripcionLineaVentasResponder()));
 
 	}
 
@@ -461,8 +453,6 @@ public class FishMarketAgent extends POAAgent {
 													// por lo tanto no es necesario revisar el resto de
 													// suscripciones de las demas lineas de venta
 				for (Subscription s : lines.get(linea)) {
-					AID sender = s.getMessage().getSender();
-					AID cancelSender = cancel.getSender();
 					if (s.getMessage().getSender().equals(cancel.getSender())) {
 						subscriptionManager.deregister(s);
 						return super.handleCancel(cancel);

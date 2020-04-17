@@ -2,7 +2,6 @@ package agents.fishship;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.List;
@@ -15,11 +14,11 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
-import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.proto.AchieveREInitiator;
+import utils.MessageCreator;
 
 public class FishShipAgent extends POAAgent {
 
@@ -27,9 +26,10 @@ public class FishShipAgent extends POAAgent {
 	// ------------Variables------------//
 	// ---------------------------------//
 	private static final long serialVersionUID = 1L;
-	List<Lot> lots;
-	AID vendedor;
- 
+	
+	List<Lot> mercancia; // Mercancía que tiene el barco, parte de la cual se le entregara al vendedor
+	AID vendedor; // Vendedor, asociado al barco pesquero, que vendera la mercancia a la lonja
+
 	// ---------------------------------//
 	// ------------Funciones------------//
 	// ---------------------------------//
@@ -85,8 +85,9 @@ public class FishShipAgent extends POAAgent {
 		System.out.println("Soy el agente lonja " + this.getName());
 
 		// Initialize variables
-		lots = config.getLots();
+		mercancia = config.getLots();
 		vendedor = new AID(config.getSeller(), AID.ISLOCALNAME);
+
 		// Register the fish-ship service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -102,17 +103,8 @@ public class FishShipAgent extends POAAgent {
 
 		// Añadimos los Behaviours
 		// (protocolo-entrega-mercancia)
-		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
-		try {
-			request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-			request.addReceiver(vendedor);
-			request.setContentObject(seleccionarMercancia());
-			request.setConversationId("entrega-mercancia-" + vendedor.getLocalName());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		addBehaviour(new SuministroMercancia(this, request));
+		addBehaviour(
+				new SuministroMercancia(this, MessageCreator.msgSuministroMercancia(vendedor, seleccionarMercancia())));
 
 	}
 
@@ -125,8 +117,8 @@ public class FishShipAgent extends POAAgent {
 	 */
 	private Serializable seleccionarMercancia() {
 		// TODO Seleccionar la mercancia que le vamos a entregar al vendedor
-		
-		return (Serializable)lots;
+
+		return (Serializable) mercancia;
 	}
 
 	// ---------------------------------//

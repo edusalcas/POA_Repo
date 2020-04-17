@@ -25,6 +25,7 @@ import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREInitiator;
 import jade.proto.SubscriptionInitiator;
+import utils.MessageCreator;
 
 public class BuyerAgent extends POAAgent {
 
@@ -126,30 +127,13 @@ public class BuyerAgent extends POAAgent {
 		addBehaviour(new RequestAdmision());
 
 		// (protocolo-apertura-crédito)
-		ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
-		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-		request.addReceiver(lonjaAgent);
-		request.setContent(Float.toString(budget));
-		request.setConversationId("apertura-credito");
-
-		addBehaviour(new AperturaCredito(this, request));
+		addBehaviour(new AperturaCredito(this, MessageCreator.msgAperturaCredito(lonjaAgent, budget)));
 
 		// (protocolo-retirada-compras)
-		request = new ACLMessage(ACLMessage.REQUEST);
-		request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-		request.addReceiver(lonjaAgent);
-		request.setConversationId("retirar-compras");
-
-		addBehaviour(new RetirarCompras(this, request));
+		addBehaviour(new RetirarCompras(this, MessageCreator.msgRetirarCompras(lonjaAgent)));
 
 		// (protocolo-subasta)
-		request = new ACLMessage(ACLMessage.SUBSCRIBE);
-		request.setProtocol(FIPANames.InteractionProtocol.FIPA_SUBSCRIBE);
-		request.addReceiver(lonjaAgent);
-		request.setConversationId("subs-linea_venta");
-		request.setContent("1");
-
-		initiator = new SuscripcionLineaVentas(this, request);
+		initiator = new SuscripcionLineaVentas(this, MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, "1"));
 		addBehaviour(initiator);
 
 	}
@@ -288,7 +272,7 @@ public class BuyerAgent extends POAAgent {
 	 * Clase privada encargada de la comunicacion con el RGC para retirar los lotes
 	 * que el comprador ya ha comprado en las lineas de ventas.
 	 */
-	//TODO Hacerlo ciclico
+	// TODO Hacerlo ciclico
 	private class RetirarCompras extends AchieveREInitiator {
 
 		private static final long serialVersionUID = 1L;
@@ -385,7 +369,7 @@ public class BuyerAgent extends POAAgent {
 		// Función encargada de manejar la llegada de un FAILURE
 		@Override
 		protected void handleFailure(ACLMessage failure) {
-			//TODO Terminar Agente
+			// TODO Terminar Agente
 			// Creo que no tiene sentido manejar esta situacion
 			getLogger().info("Linea de venta cerrada", "LV cerrada para el comprador " + myAgent.getLocalName());
 			super.handleFailure(failure);
