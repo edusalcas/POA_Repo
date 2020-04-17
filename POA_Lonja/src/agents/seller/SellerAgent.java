@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import org.yaml.snakeyaml.Yaml;
@@ -12,14 +13,21 @@ import agents.POAAgent;
 
 import gui.GuiVendedor;
 import jade.core.AID;
+import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
+import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.NotUnderstoodException;
+import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
+import jade.proto.AchieveREResponder;
+import jade.proto.SubscriptionResponder;
 
 public class SellerAgent extends POAAgent {
 
@@ -86,7 +94,12 @@ public class SellerAgent extends POAAgent {
 		
 		// (protocolo-cobro)
 		addBehaviour(new RecieveCobro());
-
+		
+		// (protocolo-suministro-mercancia)
+		MessageTemplate mt = MessageTemplate.and(AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
+				MessageTemplate.MatchConversationId("entrega-mercancia-" + getAID().getLocalName()));
+		
+		addBehaviour(new SuministroMercanciaResponder(this, mt));
 	}
 
 	private void addLotsFromConfig(SellerAgentConfig config) {
@@ -271,4 +284,40 @@ public class SellerAgent extends POAAgent {
 
 	}
 	// End of inner class Deposito de Capturas
+	
+	/*
+	 * Clase encargada de la comunicación con el RB, para recibir las mercancias que este
+	 * le entregue
+	 */
+	private class SuministroMercanciaResponder extends AchieveREResponder{
+
+		private static final long serialVersionUID = 1L;
+
+		// Constructor
+		public SuministroMercanciaResponder(Agent a, MessageTemplate mt) {
+			super(a, mt);
+		}
+		
+		// Función encargada de manejar la llegada de un REQUEST
+		@Override
+		protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
+			// Añadir la mercancia
+			try {
+				@SuppressWarnings("unchecked")
+				List<Lot> mercancia = (List<Lot>) request.getContentObject();
+				lots.addAll(mercancia);
+				getLogger().info("Suministro Mercancia", "Añadidos los lotes: " + mercancia);
+			} catch (UnreadableException e) {
+				e.printStackTrace();
+			}
+			
+			// Crear un INFORM como confirmacion de la mercancia
+			ACLMessage informDone = request.createReply();
+			informDone.setPerformative(ACLMessage.INFORM);
+			
+			return super.handleRequest(informDone);
+		}
+		
+	}
+	// End of inner class SuministroMercanciaResponder
 }
