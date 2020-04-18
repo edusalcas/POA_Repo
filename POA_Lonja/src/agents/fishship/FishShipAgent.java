@@ -4,7 +4,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -26,7 +28,7 @@ public class FishShipAgent extends POAAgent {
 	// ------------Variables------------//
 	// ---------------------------------//
 	private static final long serialVersionUID = 1L;
-	
+
 	List<Lot> mercancia; // Mercancía que tiene el barco, parte de la cual se le entregara al vendedor
 	AID vendedor; // Vendedor, asociado al barco pesquero, que vendera la mercancia a la lonja
 
@@ -116,9 +118,25 @@ public class FishShipAgent extends POAAgent {
 	 * le va a entregar al vendedor
 	 */
 	private Serializable seleccionarMercancia() {
-		// TODO Seleccionar la mercancia que le vamos a entregar al vendedor
+		ArrayList<Lot> mercanciaSeleccionada = new ArrayList<Lot>();
 
-		return (Serializable) mercancia;
+		Random random = new Random();
+		// Le damos al vendedor como minimo la mitad de los tipos de mercancia
+		int nItems = random.nextInt(mercancia.size() / 2) + mercancia.size() / 2 + 1;
+		for (int i = 0; i < nItems; i++) {
+			// Seleccionamos aleatoriamente un tipo de mercancia
+			int index = random.nextInt(mercancia.size());
+			Lot lot = mercancia.remove(index);
+
+			// De cada tipo de mercancia, le damos al vendedor entre un 20% y un 30%
+			float porcentaje = (random.nextInt(30) + 20) / 100;
+			Lot lotEntrega = new Lot(lot.getType(), lot.getKg() * porcentaje);
+			
+			// Añadimos el lote a la mercancia para el vendedor
+			mercanciaSeleccionada.add(lotEntrega);
+
+		}
+		return (Serializable) mercanciaSeleccionada;
 	}
 
 	// ---------------------------------//
