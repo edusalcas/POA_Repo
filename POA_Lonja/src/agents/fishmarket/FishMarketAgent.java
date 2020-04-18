@@ -205,7 +205,8 @@ public class FishMarketAgent extends POAAgent {
 	private void cerrarLinea(int lv) {
 		List<Subscription> subscripciones = lines.get(lv);
 		lines.remove(lv);
-		Set<Integer> lineasVenta =  lines.keySet();
+		ArrayList<Integer> lineasVenta =  new ArrayList<Integer>(lines.keySet());
+		
 		for (Subscription s : subscripciones) {
 
 			ACLMessage notification = s.getMessage().createReply();
@@ -214,7 +215,6 @@ public class FishMarketAgent extends POAAgent {
 				notification.setPerformative(ACLMessage.FAILURE);
 				s.notify(notification);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			

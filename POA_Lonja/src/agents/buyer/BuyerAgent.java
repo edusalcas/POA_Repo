@@ -3,6 +3,7 @@ package agents.buyer;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -369,19 +370,20 @@ public class BuyerAgent extends POAAgent {
 		// Función encargada de manejar la llegada de un FAILURE
 		@Override
 		protected void handleFailure(ACLMessage failure) {
-			// TODO Terminar Agente
 			try {
-				Set<Integer> lineasVenta = (Set<Integer>) failure.getContentObject();
+				@SuppressWarnings("unchecked")
+				ArrayList<Integer> lineasVenta = (ArrayList<Integer>) failure.getContentObject();
 				if(!lineasVenta.isEmpty()) {
 					Random rand = new Random();
 					int indice = rand.nextInt(lineasVenta.size());
-					int lv = (Integer)lineasVenta.toArray()[indice];
+					int lv = lineasVenta.get(indice);
 					getAgent().addBehaviour(new SuscripcionLineaVentas(getAgent(), MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, Integer.toString(lv))));
+				} else {
+					getAgent().addBehaviour(new RetirarCompras(getAgent(), MessageCreator.msgRetirarCompras(lonjaAgent)));
 				}
 				getLogger().info("Linea de venta cerrada", "LV cerrada para el comprador " + myAgent.getLocalName());
 				super.handleFailure(failure);
 			} catch (UnreadableException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			// Creo que no tiene sentido manejar esta situacion

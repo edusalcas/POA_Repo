@@ -129,8 +129,9 @@ public class FishShipAgent extends POAAgent {
 			Lot lot = mercancia.remove(index);
 
 			// De cada tipo de mercancia, le damos al vendedor entre un 20% y un 30%
-			float porcentaje = (random.nextInt(30) + 20) / 100;
-			Lot lotEntrega = new Lot(lot.getType(), lot.getKg() * porcentaje);
+			float porcentaje = (random.nextInt(30) + 20) / 100.0f;
+			float roundOff = (float) (Math.round(lot.getKg() * porcentaje * 100.0) / 100.0);
+			Lot lotEntrega = new Lot(lot.getType(), roundOff);
 			
 			// Añadimos el lote a la mercancia para el vendedor
 			mercanciaSeleccionada.add(lotEntrega);
