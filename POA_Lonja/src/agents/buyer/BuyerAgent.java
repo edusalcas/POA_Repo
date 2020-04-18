@@ -37,6 +37,7 @@ public class BuyerAgent extends POAAgent {
 
 	private float budget; // Cantidad de dinero disponible
 	private boolean lineaCreditoCreada; // La linea de credito se ha creado en la lonja
+	private int numLotesComprados; // Cantidad de lotes que se han comprado en la lonja
 	private List<Lot> lots; // Lotes que tiene el comprador
 	private List<Item> listaCompra; // Lista de los elementos que quiere comprar
 
@@ -64,7 +65,7 @@ public class BuyerAgent extends POAAgent {
 			doDelete();
 		}
 	}
-
+	
 	@Override
 	public void takeDown() {
 		// Cancelamos la suscripcion a la linea de venta
@@ -128,9 +129,6 @@ public class BuyerAgent extends POAAgent {
 
 		// (protocolo-apertura-crédito)
 		addBehaviour(new AperturaCredito(this, MessageCreator.msgAperturaCredito(lonjaAgent, budget)));
-
-		// (protocolo-retirada-compras)
-		addBehaviour(new RetirarCompras(this, MessageCreator.msgRetirarCompras(lonjaAgent)));
 
 		// (protocolo-subasta)
 		initiator = new SuscripcionLineaVentas(this, MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, "1"));
@@ -272,7 +270,6 @@ public class BuyerAgent extends POAAgent {
 	 * Clase privada encargada de la comunicacion con el RGC para retirar los lotes
 	 * que el comprador ya ha comprado en las lineas de ventas.
 	 */
-	// TODO Hacerlo ciclico
 	private class RetirarCompras extends AchieveREInitiator {
 
 		private static final long serialVersionUID = 1L;
@@ -292,6 +289,8 @@ public class BuyerAgent extends POAAgent {
 				lots.addAll(lotes);
 
 				getLogger().info("Retirar compras", "Se han retirado correctamente " + lots.toString());
+
+				getAgent().doDelete();
 			} catch (UnreadableException e) {
 				e.printStackTrace();
 			}
@@ -393,18 +392,29 @@ public class BuyerAgent extends POAAgent {
 			this.lote = lote;
 		}
 
+		// Función encargada de manejar la llegada de un INFORM
 		@Override
 		protected void handleInform(ACLMessage inform) {
 			getLogger().info("Subasta lote: " + lote.getID(), "La lonja ha aceptado la puja por el paquete");
+			numLotesComprados++;
+			
 			// Restamos la cantidad de producto obtenida
 			if (actualizarListaCompra(lote)) {
 				// El AC ha completado su lista de la compra y se finaliza
 				getLogger().info("Subasta lote: " + lote.getID(),
 						"El agente " + getAgent().getLocalName() + " ha cumplido con su lista de la compra");
 
-				getAgent().doDelete();
+				// (protocolo-retirada-compras)
+				myAgent.addBehaviour(new RetirarCompras(myAgent, MessageCreator.msgRetirarCompras(lonjaAgent)));
 			}
 
+		}
+
+		// Función encargada de manejar la llegada de un REFUSE
+		@Override
+		protected void handleRefuse(ACLMessage refuse) {
+			getLogger().info("Subasta lote: " + lote.getID(), refuse.getContent());
+			super.handleRefuse(refuse);
 		}
 
 	}

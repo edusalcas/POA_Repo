@@ -1,1 +1,1 @@
-http://DESKTOP-TGLTGKV:7778/acc
+http://192.168.1.3:7778/acc

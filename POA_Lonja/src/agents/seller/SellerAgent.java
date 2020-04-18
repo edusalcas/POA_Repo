@@ -267,7 +267,6 @@ public class SellerAgent extends POAAgent {
 				float precio = Float.parseFloat(msg.getContent());
 
 				// Comprobar si queremos aceptar el pago
-				// TODO No se si ibamos a cambiar esto
 				Random rand = new Random();
 				int randonResponse = rand.nextInt(100);
 				if (randonResponse >= PROB_ACEPTAR_PAGO) {

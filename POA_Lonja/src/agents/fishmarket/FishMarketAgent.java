@@ -543,7 +543,9 @@ public class FishMarketAgent extends POAAgent {
 							AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST),
 							MessageTemplate.MatchConversationId("realizar-puja-" + lote.getID()));
 					ACLMessage reply = getAgent().receive(mt);
-					if (reply != null) {
+					// Comprobamos que se ha recibido el mensaje y si se ha recibido, que tenga
+					// suficiente dinero en la linea de credito
+					if (reply != null && (lineasCredito.get(reply.getSender()) - lote.getPrecio()) >= 0) {
 						AID sender = reply.getSender();
 						// Borra el lote de la lina de ventas
 						lineLots.get(lineaVentas).remove(0);
@@ -564,8 +566,13 @@ public class FishMarketAgent extends POAAgent {
 						step = 0;
 
 					} else {
-
-						if (System.currentTimeMillis() - t0 >= TIMEOUT) {
+						
+						if (reply != null && lineasCredito.get(reply.getSender()) - lote.getPrecio() < 0){
+							ACLMessage response = reply.createReply();
+							response.setContent("No tienes suficiente credito para hacer la puja");
+							response.setPerformative(ACLMessage.REFUSE);
+							getAgent().send(response);
+						} else if (System.currentTimeMillis() - t0 >= TIMEOUT) {
 							if (lote.getPrecio() == lote.getPrecioReserva()) {
 								getLogger().info("Subasta lote: " + lote.getID(),
 										"No se ha vendido el lote: " + lote.toString());
