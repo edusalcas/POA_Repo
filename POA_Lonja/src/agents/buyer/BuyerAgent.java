@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -369,9 +370,22 @@ public class BuyerAgent extends POAAgent {
 		@Override
 		protected void handleFailure(ACLMessage failure) {
 			// TODO Terminar Agente
+			try {
+				Set<Integer> lineasVenta = (Set<Integer>) failure.getContentObject();
+				if(!lineasVenta.isEmpty()) {
+					Random rand = new Random();
+					int indice = rand.nextInt(lineasVenta.size());
+					int lv = (Integer)lineasVenta.toArray()[indice];
+					getAgent().addBehaviour(new SuscripcionLineaVentas(getAgent(), MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, Integer.toString(lv))));
+				}
+				getLogger().info("Linea de venta cerrada", "LV cerrada para el comprador " + myAgent.getLocalName());
+				super.handleFailure(failure);
+			} catch (UnreadableException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			// Creo que no tiene sentido manejar esta situacion
-			getLogger().info("Linea de venta cerrada", "LV cerrada para el comprador " + myAgent.getLocalName());
-			super.handleFailure(failure);
+			
 		}
 	}
 	// End of inner class SuscripcionLineaVentas

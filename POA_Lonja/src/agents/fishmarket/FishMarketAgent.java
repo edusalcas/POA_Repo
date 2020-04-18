@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -202,12 +203,21 @@ public class FishMarketAgent extends POAAgent {
 	}
 
 	private void cerrarLinea(int lv) {
-		for (Subscription s : lines.get(lv)) {
+		List<Subscription> subscripciones = lines.get(lv);
+		lines.remove(lv);
+		Set<Integer> lineasVenta =  lines.keySet();
+		for (Subscription s : subscripciones) {
 
 			ACLMessage notification = s.getMessage().createReply();
-			notification.setPerformative(ACLMessage.FAILURE);
-
-			s.notify(notification);
+			try {
+				notification.setContentObject((Serializable)lineasVenta);
+				notification.setPerformative(ACLMessage.FAILURE);
+				s.notify(notification);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 		}
 	}
 
