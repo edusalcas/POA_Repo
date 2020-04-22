@@ -64,16 +64,19 @@ public class ScenarioLauncher {
 
 				// Buyers
 				List<AgentRefConfig> buyers = scenario.getBuyers();
-				for(AgentRefConfig buyer: buyers) {
-					System.out.println(buyer);
-					Object[] buyerConfigArg = {buyer.getConfig()};
-					AgentController b = mc.createNewAgent(
-							buyer.getName(), 
-							es.um.poa.agents.buyer.BuyerAgent.class.getName(), 
-							buyerConfigArg);
-					b.start();
+				if(buyers != null ) {
+					for(AgentRefConfig buyer: buyers) {
+						System.out.println(buyer);
+						Object[] buyerConfigArg = {buyer.getConfig()};
+						AgentController b = mc.createNewAgent(
+								buyer.getName(), 
+								es.um.poa.agents.buyer.BuyerAgent.class.getName(), 
+								buyerConfigArg);
+						b.start();
+					}
 				}
 				
+				/*
 				// Sellers
 				List<AgentRefConfig> sellers = scenario.getSellers();
 				for(AgentRefConfig seller: sellers) {
@@ -81,14 +84,43 @@ public class ScenarioLauncher {
 					Object[] buyerConfigArg = {seller.getConfig()};
 					AgentController b = mc.createNewAgent(
 							seller.getName(), 
-							es.um.poa.agents.seller.SellerAgent.class.getName(), 
+							agents.seller.SellerAgent.class.getName(), 
 							buyerConfigArg);
 					b.start();
+				}*/
+				
+				//Sellers New
+				List<AgentRefConfig> sellers = scenario.getSellers();
+				if(sellers != null) {
+					for(AgentRefConfig seller: sellers) {
+						System.out.println(seller);
+						AgentController b = mc.createNewAgent(
+								seller.getName(), 
+								es.um.poa.agents.seller.SellerAgent.class.getName(), 
+								null);
+						b.start();
+					}
 				}
+				// FishShips
+				List<AgentRefConfig> fishShips = scenario.getFishShips();
+				if(fishShips != null) {
+					for(AgentRefConfig fishShip: fishShips) {
+						System.out.println(fishShip);
+						Object[] fishShipConfigArg = {fishShip.getConfig()};
+						AgentController b = mc.createNewAgent(
+								fishShip.getName(), 
+								es.um.poa.agents.fishship.FishShipAgent.class.getName(),
+								//agents.seller.SellerAgent.class.getName(), 
+								fishShipConfigArg);
+						b.start();
+					}
+				}
+				
 			}
 			catch(Exception e) {
 				e.printStackTrace();
 			}
+						
 		}
 	}
 	
