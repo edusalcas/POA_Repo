@@ -1,0 +1,7 @@
+!!es.um.poa.agents.fishship.FishShipAgentConfig
+lots:
+  - kg: 10.0
+    type: "sardina"
+  - kg: 6.0
+    type: "boqueron"
+seller: "Vendedor1"

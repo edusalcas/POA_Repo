@@ -1,0 +1,7 @@
+!!es.um.poa.agents.buyer.BuyerAgentConfig
+budget: 1000.0
+items: 
+   - name: "sardina"
+     cantidad: 10.0
+   - name: "boqueron"
+     cantidad: 6.0
