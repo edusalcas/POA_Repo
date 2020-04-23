@@ -83,13 +83,13 @@ public class FishShipAgent extends POAAgent {
 	 * Funcion encargada de inicializar el agente lonja
 	 */
 	private void init(FishShipAgentConfig config) {
+		
 		// Anunciamos que el agente ha sido creado
 		System.out.println("Soy el agente lonja " + this.getName());
 
 		// Initialize variables
 		mercancia = config.getLots();
 		vendedor = new AID(config.getSeller(), AID.ISLOCALNAME);
-
 		// Register the fish-ship service in the yellow pages
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -132,6 +132,7 @@ public class FishShipAgent extends POAAgent {
 			float porcentaje = (random.nextInt(30) + 20) / 100.0f;
 			float roundOff = (float) (Math.round(lot.getKg() * porcentaje * 100.0) / 100.0);
 			Lot lotEntrega = new Lot(lot.getType(), roundOff);
+			lotEntrega.setID(lot.getID());
 			
 			// Añadimos el lote a la mercancia para el vendedor
 			mercanciaSeleccionada.add(lotEntrega);

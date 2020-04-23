@@ -11,5 +11,5 @@ sellers:
   - name: "Vendedor1"
     config: "configs/sellerType1.yaml"
 fishShips:
-   - name: "Barco Pesquero1"
+   - name: "BarcoPesquero1"
      config: "configs/fishShipType1.yaml"

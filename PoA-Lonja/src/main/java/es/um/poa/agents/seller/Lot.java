@@ -11,7 +11,7 @@ public class Lot implements Serializable {
 	// ---------------------------------//
 
 	private static final long serialVersionUID = 1L;
-	private final int ID; // Identificador unico de cada lote
+	private int ID; // Identificador unico de cada lote
 	private static final AtomicInteger count = new AtomicInteger(0); // Variable que se autoincrementa para que el id
 																		// sea unico
 
@@ -32,7 +32,7 @@ public class Lot implements Serializable {
 		this.precioInicio = 10.0f;
 		this.precioReserva = 5.0f;
 		this.precio = 10.0f;
-		this.ID = count.getAndIncrement();
+		this.ID = 0;
 	}
 
 	// Constructor para los lotes que se introduzcan por gui (tendran un precio fijo)
@@ -42,7 +42,7 @@ public class Lot implements Serializable {
 		this.precioInicio = 10.0f;
 		this.precioReserva = 5.0f;
 		this.precio = 10.0f;
-		this.ID = count.getAndIncrement();
+		this.ID = 0;
 	}
 
 	// ---------------------------------//
@@ -54,28 +54,34 @@ public class Lot implements Serializable {
 		return "Lot [kg=" + kg + ", type=" + type + ", precio=" + precio + " ID=" + ID + "]";
 	}
 
+	
+
+	// ---------------------------------//
+	// --------Getters & Setters--------//
+	// ---------------------------------//
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ID;
+		return result;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
 			return false;
-		if (obj instanceof Lot)
+		if (getClass() != obj.getClass())
 			return false;
-
-		Lot copy = (Lot) obj;
-		return this.ID == copy.ID;
+		Lot other = (Lot) obj;
+		if (ID != other.ID)
+			return false;
+		return true;
 	}
 
-	@Override
-	public int hashCode() {
-		return super.hashCode() + ID;
-	}
-
-	// ---------------------------------//
-	// --------Getters & Setters--------//
-	// ---------------------------------//
-	
 	public float getKg() {
 		return kg;
 	}
@@ -119,5 +125,11 @@ public class Lot implements Serializable {
 	public int getID() {
 		return ID;
 	}
+
+	public void setID(int iD) {
+		ID = iD;
+	}
+	
+	
 
 }

@@ -2,6 +2,8 @@
 lots:
   - kg: 10.0
     type: "sardina"
+    ID: 1
   - kg: 6.0
     type: "boqueron"
+    ID: 2
 seller: "Vendedor2"

@@ -1,5 +1,6 @@
 package es.um.poa.agents.seller;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -197,14 +198,15 @@ public class SellerAgent extends POAAgent {
 				case 0:
 					// Obtenemos el primer lot
 					Lot lot = lots.get(0);
-					String type = lot.getType();
-					float kg = lot.getKg();
-
 					// Enviar request al agente lonja con rol RAV
 					ACLMessage req = new ACLMessage(ACLMessage.REQUEST);
 					req.addReceiver(lonjaAgent);
 					req.setConversationId("deposito-captura");
-					req.setContent(type + "," + kg);
+					try {
+						req.setContentObject(lot);
+					} catch (IOException e) {
+						e.printStackTrace();
+					};
 					req.setReplyWith("dep" + System.currentTimeMillis()); // Unique value
 
 					myAgent.send(req);
@@ -222,11 +224,7 @@ public class SellerAgent extends POAAgent {
 						// Reply received
 						if (reply.getPerformative() == ACLMessage.INFORM) {
 							// Deposito de capturas exitoso
-							String[] content = reply.getContent().split(",");
-							String type1 = content[0];
-							float kg1 = Float.parseFloat(content[1]);
-							getLogger().info("DepositoDeCaptura", "Deposito de " + kg1 + "kg de " + type1 + " exitoso");
-
+							getLogger().info("DepositoDeCaptura", "Deposito de " + lots.get(0).getKg() + "kg de " + lots.get(0).getType() + " exitoso");
 							lots.remove(0);
 							step = 0;
 						} else {

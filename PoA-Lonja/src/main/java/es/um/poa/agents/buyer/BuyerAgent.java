@@ -250,13 +250,13 @@ public class BuyerAgent extends POAAgent {
 		protected void handleInform(ACLMessage inform) {
 			lineaCreditoCreada = true;
 
-			getLogger().info("Apertura credito", "Se ha abierto correctamente la l�nea de cr�dito");
+			getLogger().info("Apertura credito", "Se ha abierto correctamente la linea de credito");
 		}
 
 		// Función encargada de manejar la llegada de un REFUSE
 		@Override
 		protected void handleRefuse(ACLMessage refuse) {
-			getLogger().info("Apertura credito", "No se ha podido abrir una l�nea de cr�dito");
+			getLogger().info("Apertura credito", "No se ha podido abrir una linea de credito");
 		}
 
 		// Función encargada de manejar la terminacion de la clase

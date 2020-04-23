@@ -29,6 +29,7 @@ import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREResponder;
 import jade.proto.SubscriptionResponder;
 import jade.proto.SubscriptionResponder.Subscription;
@@ -47,7 +48,7 @@ public class FishMarketAgent extends POAAgent {
 	private HashMap<AID, List<Lot>> lotesComprador; // Lotes que cada comprador ha comprado
 	private HashMap<Integer, List<Subscription>> lines; // Lineas de venta y los suscriptores de cada uno
 	private HashMap<Integer, List<Lot>> lineLots; // Lotes en cada linea de venta
-
+	private HashMap<Integer, Boolean> lineasAbiertas; // Indica si se ha iniciado una subasta en una linea de ventas
 	private List<AID> buyerAgents; // Agentes compradores
 	private List<Lot> lotsReserva; // Lotes que no se han vendido
 
@@ -68,7 +69,7 @@ public class FishMarketAgent extends POAAgent {
 				init(config);
 			}
 		} else {
-			this.getLogger().info("ERROR", "Requiere fichero de cofiguración.");
+			this.getLogger().info("ERROR", "Requiere fichero de cofiguracion.");
 			doDelete();
 		}
 	}
@@ -116,9 +117,11 @@ public class FishMarketAgent extends POAAgent {
 		lines = new HashMap<Integer, List<Subscription>>();
 		lineLots = new HashMap<Integer, List<Lot>>();
 		lotsReserva = new ArrayList<Lot>();
+		lineasAbiertas = new HashMap<Integer, Boolean>();
 
 		// Creamos una linea de ventas
 		lines.put(1, new ArrayList<Subscription>());
+		lineasAbiertas.put(1, false);
 		lineLots.put(1, new ArrayList<Lot>());
 
 		// Manejador de las siscripciones a las lineas de venta
@@ -165,6 +168,7 @@ public class FishMarketAgent extends POAAgent {
 	private void iniciarLineaVenta(int linea) {
 		getLogger().info("SubastasLineaVentas", "La subasta de la linea de venta numero "+linea+" tendra comienzo en 5 segundos");
 		addBehaviour(new SubastasLineaVentas(linea));
+		lineasAbiertas.put(linea, true);
 	}
 
 	private void pagarVendedor(Lot lote) {
@@ -203,6 +207,7 @@ public class FishMarketAgent extends POAAgent {
 	}
 
 	private void cerrarLinea(int lv) {
+		lineasAbiertas.put(lv, false);
 		List<Subscription> subscripciones = lines.get(lv);
 		lines.remove(lv);
 		ArrayList<Integer> lineasVenta =  new ArrayList<Integer>(lines.keySet());
@@ -279,15 +284,17 @@ public class FishMarketAgent extends POAAgent {
 			if (msg != null) {
 				// Request Message received. Process it.
 				ACLMessage reply = msg.createReply();
-				String[] content = msg.getContent().split(",");
-				String type = content[0];
-				float kg = Float.parseFloat(content[1]);
-
+				Lot lot = null;
+				try {
+					lot = (Lot) msg.getContentObject();
+				} catch (UnreadableException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				sender = msg.getSender();
 
 				if (sellerAgents.containsKey(sender)) {
 					// Seller is registred
-					Lot lot = new Lot(type, kg);
 					sellerAgents.get(sender).add(lot);
 
 					// Seleccionamos aleatoriamente la linea de venta para ese lote
@@ -295,7 +302,7 @@ public class FishMarketAgent extends POAAgent {
 					int randomLine = rand.nextInt(lines.size());
 					int indice = (Integer) lineLots.keySet().toArray()[randomLine];
 					lineLots.get(indice).add(lot);
-					if (lines.get(indice).size() > 0 && lineLots.get(indice).size() > 1)
+					if (!lineasAbiertas.get(indice) && lines.get(indice).size() > 0 && lineLots.get(indice).size() > 1)
 						iniciarLineaVenta(indice);
 					reply.setContent(msg.getContent());
 					reply.setPerformative(ACLMessage.INFORM);
@@ -440,7 +447,7 @@ public class FishMarketAgent extends POAAgent {
 
 				int linea = Integer.parseInt(subscription.getContent());
 
-				if (lines.get(linea).size() > 0 && lineLots.get(linea).size() > 1)
+				if (!lineasAbiertas.get(linea) && lines.get(linea).size() > 0 && lineLots.get(linea).size() > 1)
 					iniciarLineaVenta(linea);
 
 			} else {
@@ -569,7 +576,7 @@ public class FishMarketAgent extends POAAgent {
 					if (reply != null && (lineasCredito.get(reply.getSender()) - lote.getPrecio()) >= 0) {
 						AID sender = reply.getSender();
 						// Borra el lote de la lina de ventas
-						lineLots.get(lineaVentas).remove(0);
+						lineLots.get(lineaVentas).remove(lote);
 						// Se añade el lote a la lista de lotes del comprador
 						lotesComprador.get(sender).add(lote);
 						// Se actualiza la linea de credito del comprador
