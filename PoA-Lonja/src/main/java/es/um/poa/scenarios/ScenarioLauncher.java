@@ -80,20 +80,7 @@ public class ScenarioLauncher {
 					}
 				}
 				
-				/*
-				// Sellers
-				List<AgentRefConfig> sellers = scenario.getSellers();
-				for(AgentRefConfig seller: sellers) {
-					System.out.println(seller);
-					Object[] buyerConfigArg = {seller.getConfig()};
-					AgentController b = mc.createNewAgent(
-							seller.getName(), 
-							agents.seller.SellerAgent.class.getName(), 
-							buyerConfigArg);
-					b.start();
-				}*/
-				
-				//Sellers New
+				//Sellers
 				List<AgentRefConfig> sellers = scenario.getSellers();
 				if(sellers != null) {
 					for(AgentRefConfig seller: sellers) {
