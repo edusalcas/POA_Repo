@@ -326,7 +326,6 @@ public class FishMarketAgent extends POAAgent {
 				try {
 					lot = (Lot) msg.getContentObject();
 				} catch (UnreadableException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				sender = msg.getSender();
@@ -612,7 +611,6 @@ public class FishMarketAgent extends POAAgent {
 				try {
 					Thread.sleep(5000);
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				firstTime = false;

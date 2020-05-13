@@ -43,7 +43,6 @@ public class BuyerAgent extends POAAgent {
 	private final int PROB_PUJAR = 50; // Probabilidad del comprador para pujar por un lote
 
 	private float budget; // Cantidad de dinero disponible
-	private boolean lineaCreditoCreada; // La linea de credito se ha creado en la lonja
 	private List<Lot> lots; // Lotes que tiene el comprador
 	private List<Item> listaCompra; // Lista de los elementos que quiere comprar
 
@@ -251,6 +250,7 @@ public class BuyerAgent extends POAAgent {
 	 */
 	private class AperturaCredito extends AchieveREInitiator {
 
+		boolean lineaCreditoCreada = false;
 		private static final long serialVersionUID = 1L;
 
 		// Constructor

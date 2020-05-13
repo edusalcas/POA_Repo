@@ -54,6 +54,13 @@ public class SellerAgent extends POAAgent {
 
 	@Override
 	public void takeDown() {
+		// Deregister from the yellow pages
+		try {
+			DFService.deregister(this);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		
 		// Printout a dismissal message
 		System.out.println("Seller-agent " + getAID().getName() + " terminating.");
 		super.takeDown();
