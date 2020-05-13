@@ -36,6 +36,11 @@ import jade.proto.SubscriptionResponder.Subscription;
 import jade.proto.SubscriptionResponder.SubscriptionManager;
 import es.um.poa.utils.MessageCreator;
 
+/**
+ * Clase que representa al agente lonja
+ * 
+ * @author Eduardo Salmeron Castaño Francisco Hita Ruiz
+ */
 public class FishMarketAgent extends POAAgent {
 
 	// ---------------------------------//
@@ -102,8 +107,10 @@ public class FishMarketAgent extends POAAgent {
 		return config;
 	}
 
-	/*
+	/**
 	 * Funcion encargada de inicializar el agente lonja
+	 * 
+	 * @param config parametros de configuracion
 	 */
 	private void init(FishMarketAgentConfig config) {
 		// Anunciamos que el agente ha sido creado
@@ -165,12 +172,24 @@ public class FishMarketAgent extends POAAgent {
 	// -------Funciones privadas--------//
 	// ---------------------------------//
 
+	/**
+	 * Funcion encargada de iniciar una linea de ventas
+	 * 
+	 * @param linea numero de la linea de ventas
+	 */
 	private void iniciarLineaVenta(int linea) {
-		getLogger().info("SubastasLineaVentas", "La subasta de la linea de venta numero "+linea+" tendra comienzo en 5 segundos");
+		getLogger().info("SubastasLineaVentas",
+				"La subasta de la linea de venta numero " + linea + " tendra comienzo en 5 segundos");
 		addBehaviour(new SubastasLineaVentas(linea));
 		lineasAbiertas.put(linea, true);
 	}
 
+	/**
+	 * Funcion engargada de pagar al vendedor correspondiente el precio de reserva
+	 * de un lote
+	 * 
+	 * @param lote lote vendido
+	 */
 	private void pagarVendedor(Lot lote) {
 		AID vendedor = getVendedor(lote);
 
@@ -180,6 +199,12 @@ public class FishMarketAgent extends POAAgent {
 
 	}
 
+	/**
+	 * Funcion engargada de devolver el vendedor correspondiente a un lote
+	 * 
+	 * @param lote lote del que se quiere saber el vendedor
+	 * @return vendedor al que pertenecia el lote
+	 */
 	private AID getVendedor(Lot lote) {
 		for (AID vendedor : sellerAgents.keySet())
 			if (sellerAgents.get(vendedor).contains(lote))
@@ -188,6 +213,12 @@ public class FishMarketAgent extends POAAgent {
 		return null;
 	}
 
+	/**
+	 * Funcion encargada de notificar la subasta de un lote en una linea de ventas
+	 * 
+	 * @param lv   numero de la linea de ventas
+	 * @param lote lote que se subasta
+	 */
 	private void notificarLinea(int lv, Lot lote) {
 		for (Subscription s : lines.get(lv)) {
 
@@ -206,31 +237,37 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 
+	/**
+	 * Funcion encargada de cerrar una linea de ventas y de notificar a todos los
+	 * compradores que se encuentren en ella
+	 * 
+	 * @param lv numero de la linea de ventas
+	 */
 	private void cerrarLinea(int lv) {
 		lineasAbiertas.put(lv, false);
 		List<Subscription> subscripciones = lines.get(lv);
 		lines.remove(lv);
-		ArrayList<Integer> lineasVenta =  new ArrayList<Integer>(lines.keySet());
-		
+		ArrayList<Integer> lineasVenta = new ArrayList<Integer>(lines.keySet());
+
 		for (Subscription s : subscripciones) {
 
 			ACLMessage notification = s.getMessage().createReply();
 			try {
-				notification.setContentObject((Serializable)lineasVenta);
+				notification.setContentObject((Serializable) lineasVenta);
 				notification.setPerformative(ACLMessage.FAILURE);
 				s.notify(notification);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 		}
-		getLogger().info("Subscrion Linea Ventas", "Se ha cerrado la linea de ventas "+ lv);
+		getLogger().info("Subscrion Linea Ventas", "Se ha cerrado la linea de ventas " + lv);
 	}
 
 	// ---------------------------------//
 	// ---------Clases privadas---------//
 	// ---------------------------------//
-	/*
+	/**
 	 * Clase privada que se encarga de recibir los mensajes tipo request del
 	 * vendedor para registrarse en la lonja. En caso de que el vendedor aun no este
 	 * registrado, se le registrara. De esta comunicación se encarga el RAV.
@@ -266,7 +303,7 @@ public class FishMarketAgent extends POAAgent {
 	}
 	// End of inner class RequestRegistroVendedor
 
-	/*
+	/**
 	 * Clase privada que se encarga de recibir los mensajes tipo request del
 	 * vendedor para hacer un deposito de una captura en la lonja. En caso de que el
 	 * vendedor aun no este registrado, se le registrara, esta operación no se podrá
@@ -321,7 +358,7 @@ public class FishMarketAgent extends POAAgent {
 	}
 	// End of inner class RequestDepositoCaptura
 
-	/*
+	/**
 	 * Clase privada que se encarga de recibir los mensajes tipo request del
 	 * comprador para registrarse en la lonja. En caso de que el vendedor aun no
 	 * este registrado, se le registrara. De esta comunicación se encarga el RAC.
@@ -358,6 +395,13 @@ public class FishMarketAgent extends POAAgent {
 	}
 	// End of inner class RequestRegistroVendedor
 
+	/**
+	 * 
+	 * Clase privada que se encarga de recibir las peticiones por parte de los
+	 * compradores de abrir una linea de credito. De esta comunicacion se encarga el
+	 * RGC
+	 *
+	 */
 	private class AperturaCreditoResponder extends AchieveREResponder {
 
 		private static final long serialVersionUID = 1L;
@@ -391,6 +435,13 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 
+	/**
+	 * 
+	 * Clase privada encargada de la comunicacion con el agente comprador cuando
+	 * este solicita la retirada de los lotes comprados. El rol encargado de este
+	 * compotamiento es RGC.
+	 *
+	 */
 	private class RetiradaComprasResponder extends AchieveREResponder {
 
 		private static final long serialVersionUID = 1L;
@@ -428,6 +479,12 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 
+	/**
+	 * 
+	 * Clase privada encargada de la comunicación con el agente comprador para
+	 * manejar la suscripcion a una subasta.
+	 *
+	 */
 	private class SuscripcionLineaVentasResponder extends SubscriptionResponder {
 
 		private static final long serialVersionUID = 1L;
@@ -482,7 +539,7 @@ public class FishMarketAgent extends POAAgent {
 		}
 	}
 
-	/*
+	/**
 	 * Clase privada necesaria para el protocolo suscribir en linea de venta,
 	 * encargada de la función de suscribir y desuscribir a un agente
 	 */
@@ -527,6 +584,12 @@ public class FishMarketAgent extends POAAgent {
 	}
 	// End of inner class Manager
 
+	/**
+	 * 
+	 * Clase privada encargada de manejar la comunicacion de la lonja con el agente
+	 * comprador cuando se produce una subasta.
+	 *
+	 */
 	private class SubastasLineaVentas extends Behaviour {
 
 		private static final long serialVersionUID = 1L;
@@ -534,7 +597,6 @@ public class FishMarketAgent extends POAAgent {
 		private int step = 0;
 		private int lineaVentas = 0;
 		Lot lote = null;
-		private final int TIMEOUT = 1000;
 		private boolean firstTime;
 		private long t0;
 
@@ -545,7 +607,7 @@ public class FishMarketAgent extends POAAgent {
 
 		@Override
 		public void action() {
-			if(firstTime) {
+			if (firstTime) {
 				try {
 					Thread.sleep(5000);
 				} catch (InterruptedException e) {
@@ -594,13 +656,13 @@ public class FishMarketAgent extends POAAgent {
 						step = 0;
 
 					} else {
-						
-						if (reply != null && lineasCredito.get(reply.getSender()) - lote.getPrecio() < 0){
+
+						if (reply != null && lineasCredito.get(reply.getSender()) - lote.getPrecio() < 0) {
 							ACLMessage response = reply.createReply();
 							response.setContent("No tienes suficiente credito para hacer la puja");
 							response.setPerformative(ACLMessage.REFUSE);
 							getAgent().send(response);
-						} else if (System.currentTimeMillis() - t0 >= TIMEOUT) {
+						} else if (System.currentTimeMillis() - t0 >= lote.VENTANA_OPORTUNIDAD) {
 							if (lote.getPrecio() == lote.getPrecioReserva()) {
 								getLogger().info("Subasta lote: " + lote.getID(),
 										"No se ha vendido el lote: " + lote.toString());
@@ -611,11 +673,11 @@ public class FishMarketAgent extends POAAgent {
 								// Pagar al vendedor
 								pagarVendedor(lote);
 							} else {
-								lote.setPrecio(lote.getPrecio() - 1.0f);
+								lote.setPrecio(lote.getPrecio() - lote.DECREM_PRECIO);
 							}
 							step = 0;
 						} else {
-							block(1000);
+							block(lote.VENTANA_OPORTUNIDAD);
 						}
 
 					}
@@ -637,7 +699,7 @@ public class FishMarketAgent extends POAAgent {
 	}
 	// End of inner class SubastasLineaVentas
 
-	/*
+	/**
 	 * Clase privada que se encarga del registro del vendedor, le manda un mensaje
 	 * tipo request y el RAV le responde si se le ha registrado correctamente o no
 	 */
@@ -676,9 +738,9 @@ public class FishMarketAgent extends POAAgent {
 				if (reply != null) {
 					// Acepta pago
 					if (reply.getPerformative() == ACLMessage.INFORM) {
-						
+
 					} else { // Rechaza pago
-						
+
 					}
 					step = 2;
 

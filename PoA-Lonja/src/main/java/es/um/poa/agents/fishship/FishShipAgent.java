@@ -22,13 +22,18 @@ import jade.lang.acl.ACLMessage;
 import jade.proto.AchieveREInitiator;
 import es.um.poa.utils.MessageCreator;
 
+/**
+ * Clase que representa al agente barco pesquero
+ * 
+ * @author Eduardo Salmeron Castaño Francisco Hita Ruiz
+ * 
+ */
 public class FishShipAgent extends POAAgent {
 
 	// ---------------------------------//
 	// ------------Variables------------//
 	// ---------------------------------//
 	private static final long serialVersionUID = 1L;
-
 	List<Lot> mercancia; // Mercancía que tiene el barco, parte de la cual se le entregara al vendedor
 	AID vendedor; // Vendedor, asociado al barco pesquero, que vendera la mercancia a la lonja
 
@@ -53,12 +58,6 @@ public class FishShipAgent extends POAAgent {
 
 	@Override
 	public void takeDown() {
-		// Deregister from the yellow pages
-		try {
-			DFService.deregister(this);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
 
 		// Printout a dismissal message
 		System.out.println("FishMarket-agent " + getAID().getName() + " terminating.");
@@ -79,11 +78,13 @@ public class FishShipAgent extends POAAgent {
 		return config;
 	}
 
-	/*
+	/**
 	 * Funcion encargada de inicializar el agente lonja
+	 * 
+	 * @param config configuracion del agente barco pesquero
 	 */
 	private void init(FishShipAgentConfig config) {
-		
+
 		// Anunciamos que el agente ha sido creado
 		System.out.println("Soy el agente lonja " + this.getName());
 
@@ -113,9 +114,11 @@ public class FishShipAgent extends POAAgent {
 	// ---------------------------------//
 	// -------Funciones privadas--------//
 	// ---------------------------------//
-	/*
+	/**
 	 * Funcion que se encarga de seleccionar que mercancia de la que disponemos se
 	 * le va a entregar al vendedor
+	 * 
+	 * @return Devuekve la mercancia seleccionada
 	 */
 	private Serializable seleccionarMercancia() {
 		ArrayList<Lot> mercanciaSeleccionada = new ArrayList<Lot>();
@@ -133,7 +136,7 @@ public class FishShipAgent extends POAAgent {
 			float roundOff = (float) (Math.round(lot.getKg() * porcentaje * 100.0) / 100.0);
 			Lot lotEntrega = new Lot(lot.getType(), roundOff);
 			lotEntrega.setID(lot.getID());
-			
+
 			// Añadimos el lote a la mercancia para el vendedor
 			mercanciaSeleccionada.add(lotEntrega);
 
@@ -145,7 +148,7 @@ public class FishShipAgent extends POAAgent {
 	// ---------Clases privadas---------//
 	// ---------------------------------//
 
-	/*
+	/**
 	 * Clase privada encargada de la comunicacion con el RV en la que se ofrece una
 	 * parte de la mercancia, obtenida con un algoritmo, a un vendedor.
 	 */

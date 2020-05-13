@@ -1,9 +1,14 @@
 package es.um.poa.agents.seller;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import jade.util.leap.Serializable;
 
+/**
+ * Clase que representa a un lote
+ * 
+ * @author Eduardo Salmeron Castaño Francisco Hita Ruiz
+ * 
+ *
+ */
 public class Lot implements Serializable {
 
 	// ---------------------------------//
@@ -12,8 +17,8 @@ public class Lot implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	private int ID; // Identificador unico de cada lote
-	private static final AtomicInteger count = new AtomicInteger(0); // Variable que se autoincrementa para que el id
-																		// sea unico
+	public final float DECREM_PRECIO = 1.0f;
+	public final int VENTANA_OPORTUNIDAD = 1000;
 
 	private float kg; // Cantidad del lote
 	private String type; // Tipo de producto del lote
@@ -24,7 +29,7 @@ public class Lot implements Serializable {
 	// ---------------------------------//
 	// ----------Constructores----------//
 	// ---------------------------------//
-	
+
 	// Constructor vacio necesario para el yaml
 	public Lot() {
 		this.type = "";
@@ -35,7 +40,8 @@ public class Lot implements Serializable {
 		this.ID = 0;
 	}
 
-	// Constructor para los lotes que se introduzcan por gui (tendran un precio fijo)
+	// Constructor para los lotes que se introduzcan por gui (tendran un precio
+	// fijo)
 	public Lot(String type, float kg) {
 		this.type = type;
 		this.kg = kg;
@@ -48,18 +54,16 @@ public class Lot implements Serializable {
 	// ---------------------------------//
 	// ------Metodos sobreescritos------//
 	// ---------------------------------//
-	
+
 	@Override
 	public String toString() {
 		return "Lot [kg=" + kg + ", type=" + type + ", precio=" + precio + " ID=" + ID + "]";
 	}
 
-	
-
 	// ---------------------------------//
 	// --------Getters & Setters--------//
 	// ---------------------------------//
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -129,7 +133,5 @@ public class Lot implements Serializable {
 	public void setID(int iD) {
 		ID = iD;
 	}
-	
-	
 
 }

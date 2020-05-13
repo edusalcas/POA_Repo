@@ -7,23 +7,24 @@ import java.util.Random;
 
 import es.um.poa.agents.POAAgent;
 
-import es.um.poa.gui.GuiVendedor;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.domain.DFService;
-import jade.domain.FIPAException;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.RefuseException;
-import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREResponder;
 import es.um.poa.utils.MessageCreator;
 
+/**
+ * Clase que representa al agente Vendedor
+ * 
+ * @author Eduardo Salmeron Castaño Francisco Hita Ruiz
+ * 
+ */
 public class SellerAgent extends POAAgent {
 
 	// ---------------------------------//
@@ -32,7 +33,6 @@ public class SellerAgent extends POAAgent {
 	private static final long serialVersionUID = 1L;
 	private final int PROB_ACEPTAR_PAGO = 10; // Probabilidad de aceptar un pago de la lonja por un lote vendido
 
-	private GuiVendedor myGui; // Interfaz donde se ingresan mas lotes
 	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME); // Direccion de la lonja
 
 	private ArrayList<Lot> lots; // Lotes de los que dispone el vendedor
@@ -56,16 +56,12 @@ public class SellerAgent extends POAAgent {
 		super.takeDown();
 	}
 
-	/*
+	/**
 	 * Funcion encargada de inicializar el agente vendedor
 	 */
 	private void init() {
 		// Anunciamos que el agente ha sido creado
 		System.out.println("Soy el agente vendedor " + this.getName());
-
-		// Create and show the GUI
-		myGui = new GuiVendedor(this);
-		myGui.showGui();
 
 		// Inicializar variables
 		lots = new ArrayList<Lot>();
@@ -82,24 +78,10 @@ public class SellerAgent extends POAAgent {
 	}
 
 	// ---------------------------------//
-	// -------Funciones privadas--------//
-	// ---------------------------------//
-
-	/*
-	 * Funcion encargada de añadir un paquete mediante la GUI
-	 */
-	public void nuevaMercancia(String type, float kg) {
-		System.out.println("Nuevo paquete de mercancia con " + kg + "kg de " + type);
-		
-		Lot lot = new Lot(type, kg);
-		lots.add(lot);
-	}
-
-	// ---------------------------------//
 	// ---------Clases privadas---------//
 	// ---------------------------------//
 
-	/*
+	/**
 	 * Clase privada que se encarga del registro del vendedor, le manda un mensaje
 	 * tipo request y el RAV le responde si se le ha registrado correctamente o no
 	 */
@@ -132,11 +114,11 @@ public class SellerAgent extends POAAgent {
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Registro exitoso
 						getLogger().info("RequestRegistroVendedor", "Register Succeed");
-						
+
 						// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de
 						// capturas del RV
 						myAgent.addBehaviour(new DepositoDeCaptura());
-						
+
 						// (protocolo-cobro)
 						myAgent.addBehaviour(new RecibirCobro());
 					} else {
@@ -161,9 +143,9 @@ public class SellerAgent extends POAAgent {
 	}
 	// End of inner class RequestRegistro
 
-	/*
-	 * Clase privada encargada de la comunicacion con RRV para hacer un deposito de un 
-	 * lote en la lonja
+	/**
+	 * Clase privada encargada de la comunicacion con RRV para hacer un deposito de
+	 * un lote en la lonja
 	 */
 	private class DepositoDeCaptura extends CyclicBehaviour {
 
@@ -187,7 +169,8 @@ public class SellerAgent extends POAAgent {
 						req.setContentObject(lot);
 					} catch (IOException e) {
 						e.printStackTrace();
-					};
+					}
+					;
 					req.setReplyWith("dep" + System.currentTimeMillis()); // Unique value
 
 					myAgent.send(req);
@@ -205,7 +188,8 @@ public class SellerAgent extends POAAgent {
 						// Reply received
 						if (reply.getPerformative() == ACLMessage.INFORM) {
 							// Deposito de capturas exitoso
-							getLogger().info("DepositoDeCaptura", "Deposito de " + lots.get(0).getKg() + "kg de " + lots.get(0).getType() + " exitoso");
+							getLogger().info("DepositoDeCaptura", "Deposito de " + lots.get(0).getKg() + "kg de "
+									+ lots.get(0).getType() + " exitoso");
 							lots.remove(0);
 							step = 0;
 						} else {
@@ -227,9 +211,9 @@ public class SellerAgent extends POAAgent {
 	}
 	// End of inner class DepositoDeCaptura
 
-	/*
-	 * Clase privada encargada de la comuniacion con el RGV para recibir el pago 
-	 * por una captura que ha sido vendida en la lonja
+	/**
+	 * Clase privada encargada de la comuniacion con el RGV para recibir el pago por
+	 * una captura que ha sido vendida en la lonja
 	 */
 	private class RecibirCobro extends CyclicBehaviour {
 
@@ -270,7 +254,7 @@ public class SellerAgent extends POAAgent {
 	}
 	// End of inner class RecieveCobro
 
-	/*
+	/**
 	 * Clase encargada de la comunicación con el RB, para recibir las mercancias que
 	 * este le entregue
 	 */

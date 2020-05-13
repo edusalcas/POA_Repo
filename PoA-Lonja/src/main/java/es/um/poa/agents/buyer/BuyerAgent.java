@@ -29,6 +29,12 @@ import jade.proto.AchieveREInitiator;
 import jade.proto.SubscriptionInitiator;
 import es.um.poa.utils.MessageCreator;
 
+/**
+ * Clase que representa al agente comprador
+ * 
+ * @author Eduardo Salmeron Castaño Francisco Hita Ruiz
+ * 
+ */
 public class BuyerAgent extends POAAgent {
 
 	// ---------------------------------//
@@ -67,12 +73,12 @@ public class BuyerAgent extends POAAgent {
 			doDelete();
 		}
 	}
-	
+
 	@Override
 	public void takeDown() {
 		// Cancelamos la suscripcion a la linea de venta
 		initiator.cancel(lonjaAgent, true);
-	
+
 		// Printout a dismissal message
 		System.out.println("Buyer-agent " + getAID().getName() + " terminating.");
 		getLogger().info("", "Buyer-agent " + getAID().getName() + " terminating.");
@@ -93,8 +99,10 @@ public class BuyerAgent extends POAAgent {
 		return config;
 	}
 
-	/*
+	/**
 	 * Funcion encargada de inicializar el agente comprador
+	 * 
+	 * @param config parametros de configuracion
 	 */
 	private void init(BuyerAgentConfig config) {
 		// Anunciamos que el agente ha sido creado
@@ -117,8 +125,11 @@ public class BuyerAgent extends POAAgent {
 	// -------Funciones privadas--------//
 	// ---------------------------------//
 
-	/*
+	/**
 	 * Funcion encargada de comprobar si un producto esta en la lista de deseados
+	 * 
+	 * @param producto nombre del producto
+	 * @return Valor booleano, verdadero si es requerido, falso si no
 	 */
 	private boolean itemRequerido(String producto) {
 		for (Item item : this.listaCompra) {
@@ -128,9 +139,12 @@ public class BuyerAgent extends POAAgent {
 		return false;
 	}
 
-	/*
+	/**
 	 * Funcion encargada de actualizar la lista de la compra, habiendo comprado un
 	 * lote. Despues de actualizarla, se devuelve si la lista de la compra es vacia.
+	 * 
+	 * @param lote lote comprado
+	 * @return Devuelve si la lista de la compra es vacia o no
 	 */
 	private boolean actualizarListaCompra(Lot lote) {
 
@@ -152,7 +166,7 @@ public class BuyerAgent extends POAAgent {
 	// ---------Clases privadas---------//
 	// ---------------------------------//
 
-	/*
+	/**
 	 * Clase privada que se encarga del registro del comprador, le manda un mensaje
 	 * tipo request y el RAC le responde si se le ha registrado correctamente o no
 	 */
@@ -185,7 +199,8 @@ public class BuyerAgent extends POAAgent {
 						// Registro exitoso
 						getLogger().info("RequestAdmisionComprador", "Register Succeed");
 						// (protocolo-apertura-crédito)
-						myAgent.addBehaviour(new AperturaCredito(myAgent, MessageCreator.msgAperturaCredito(lonjaAgent, budget)));
+						myAgent.addBehaviour(
+								new AperturaCredito(myAgent, MessageCreator.msgAperturaCredito(lonjaAgent, budget)));
 					} else {
 						// Fallo en el registro
 						System.out.println(reply.getContent());
@@ -208,7 +223,7 @@ public class BuyerAgent extends POAAgent {
 	}
 	// End of inner class RequestRegistro
 
-	/*
+	/**
 	 * Clase privada encargada de la comunicacion con el RGC para abrir la linea de
 	 * credito en la lonja.
 	 */
@@ -228,7 +243,7 @@ public class BuyerAgent extends POAAgent {
 			// (protocolo-subasta)
 			initiator = new SuscripcionLineaVentas(myAgent, MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, "1"));
 			myAgent.addBehaviour(initiator);
-			
+
 			getLogger().info("Apertura credito", "Se ha abierto correctamente la linea de credito");
 		}
 
@@ -248,7 +263,7 @@ public class BuyerAgent extends POAAgent {
 	}
 	// End of inner class AperturaCredito
 
-	/*
+	/**
 	 * Clase privada encargada de la comunicacion con el RGC para retirar los lotes
 	 * que el comprador ya ha comprado en las lineas de ventas.
 	 */
@@ -288,7 +303,7 @@ public class BuyerAgent extends POAAgent {
 	}
 	// End of inner class RetirarCompras
 
-	/*
+	/**
 	 * Clase privada encargada de la comunicacon con el RS para suscribirse a una
 	 * linea de ventas.
 	 */
@@ -353,25 +368,27 @@ public class BuyerAgent extends POAAgent {
 			try {
 				@SuppressWarnings("unchecked")
 				ArrayList<Integer> lineasVenta = (ArrayList<Integer>) failure.getContentObject();
-				if(!lineasVenta.isEmpty()) {
+				if (!lineasVenta.isEmpty()) {
 					Random rand = new Random();
 					int indice = rand.nextInt(lineasVenta.size());
 					int lv = lineasVenta.get(indice);
-					getAgent().addBehaviour(new SuscripcionLineaVentas(getAgent(), MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, Integer.toString(lv))));
+					getAgent().addBehaviour(new SuscripcionLineaVentas(getAgent(),
+							MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, Integer.toString(lv))));
 				} else {
-					getAgent().addBehaviour(new RetirarCompras(getAgent(), MessageCreator.msgRetirarCompras(lonjaAgent)));
+					getAgent()
+							.addBehaviour(new RetirarCompras(getAgent(), MessageCreator.msgRetirarCompras(lonjaAgent)));
 				}
 				super.handleFailure(failure);
 			} catch (UnreadableException e) {
 				e.printStackTrace();
 			}
 			// Creo que no tiene sentido manejar esta situacion
-			
+
 		}
 	}
 	// End of inner class SuscripcionLineaVentas
 
-	/*
+	/**
 	 * Clase privada encargada de la comunicacion con el RS para realizar una puja
 	 * por un lote. Mas especificamente espera a que el AL le responda si su puja ha
 	 * sido aceptada
@@ -392,7 +409,7 @@ public class BuyerAgent extends POAAgent {
 		protected void handleInform(ACLMessage inform) {
 			getLogger().info("Subasta lote: " + lote.getID(), "La lonja ha aceptado la puja por el paquete");
 			numLotesComprados++;
-			
+
 			// Restamos la cantidad de producto obtenida
 			if (actualizarListaCompra(lote)) {
 				// El AC ha completado su lista de la compra y se finaliza
