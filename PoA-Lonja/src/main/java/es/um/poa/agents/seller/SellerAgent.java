@@ -36,7 +36,7 @@ public class SellerAgent extends POAAgent {
 	// ---------------------------------//
 	private static final long serialVersionUID = 1L;
 	private final int PROB_ACEPTAR_PAGO = 10; // Probabilidad de aceptar un pago de la lonja por un lote vendido
-
+	private float pagoRecibido; 
 	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME); // Direccion de la lonja
 
 	private ArrayList<Lot> lots; // Lotes de los que dispone el vendedor
@@ -75,6 +75,7 @@ public class SellerAgent extends POAAgent {
 
 		// Inicializar variables
 		lots = new ArrayList<Lot>();
+		pagoRecibido = 0.0f;
 
 		// Registramos al agente en las paginas amarillas
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -281,6 +282,7 @@ public class SellerAgent extends POAAgent {
 				if (randonResponse >= PROB_ACEPTAR_PAGO) {
 					// Aceptamos el pago
 					reply.setPerformative(ACLMessage.INFORM);
+					pagoRecibido = Float.parseFloat( msg.getContent());
 					getLogger().info("RecibirCobro", "Ha aceptado el cobro");
 				} else {
 					// Rechazamos el pago
