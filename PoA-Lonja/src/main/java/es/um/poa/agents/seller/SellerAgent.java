@@ -51,13 +51,6 @@ public class SellerAgent extends POAAgent {
 
 	@Override
 	public void takeDown() {
-		// Deregister from the yellow pages
-		try {
-			DFService.deregister(this);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-
 		// Printout a dismissal message
 		System.out.println("Seller-agent " + getAID().getName() + " terminating.");
 		super.takeDown();
@@ -78,33 +71,14 @@ public class SellerAgent extends POAAgent {
 		lots = new ArrayList<Lot>();
 		dinero = 0.0f;
 
-		// Register the selling-agent service in the yellow pages
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(getAID());
-		ServiceDescription sd = new ServiceDescription();
-		sd.setType("vendedor");
-		sd.setName("JADE-Lonja");
-		dfd.addServices(sd);
-		try {
-			DFService.register(this, dfd);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-
 		// Añadimos los Behaviours
 		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistro());
 
-		// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de
-		// capturas del RV
-		addBehaviour(new DepositoDeCaptura());
-
-		// (protocolo-cobro)
-		addBehaviour(new RecibirCobro());
-
 		// (protocolo-suministro-mercancia)
 		addBehaviour(new SuministroMercanciaResponder(this,
 				MessageCreator.msgSuministroMercanciaResponder(getAID().getLocalName())));
+
 	}
 
 	// ---------------------------------//
@@ -158,6 +132,13 @@ public class SellerAgent extends POAAgent {
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Registro exitoso
 						getLogger().info("RequestRegistroVendedor", "Register Succeed");
+						
+						// (protocolo-deposito) El RRV recibe la petición de hacer un deposito de
+						// capturas del RV
+						myAgent.addBehaviour(new DepositoDeCaptura());
+						
+						// (protocolo-cobro)
+						myAgent.addBehaviour(new RecibirCobro());
 					} else {
 						// Fallo en el registro
 						System.out.println(reply.getContent());
@@ -310,7 +291,7 @@ public class SellerAgent extends POAAgent {
 				@SuppressWarnings("unchecked")
 				List<Lot> mercancia = (List<Lot>) request.getContentObject();
 				lots.addAll(mercancia);
-				getLogger().info("Suministro Mercancia", "A�adidos los lotes: " + mercancia);
+				getLogger().info("Suministro Mercancia", "A�adidos los lotes: " + mercancia);
 			} catch (UnreadableException e) {
 				e.printStackTrace();
 			}

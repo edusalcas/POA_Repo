@@ -72,13 +72,7 @@ public class BuyerAgent extends POAAgent {
 	public void takeDown() {
 		// Cancelamos la suscripcion a la linea de venta
 		initiator.cancel(lonjaAgent, true);
-		// Deregister from the yellow pages
-		try {
-			DFService.deregister(this);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-
+	
 		// Printout a dismissal message
 		System.out.println("Buyer-agent " + getAID().getName() + " terminating.");
 		getLogger().info("", "Buyer-agent " + getAID().getName() + " terminating.");
@@ -113,29 +107,9 @@ public class BuyerAgent extends POAAgent {
 		// Inicializamos atributos
 		lots = new LinkedList<Lot>();
 
-		// Registramos el agente comprador en las paginas amarillas
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(getAID());
-		ServiceDescription sd = new ServiceDescription();
-		sd.setType("comprador");
-		sd.setName("JADE-Lonja");
-		dfd.addServices(sd);
-		try {
-			DFService.register(this, dfd);
-		} catch (FIPAException e) {
-			e.printStackTrace();
-		}
-
 		// Añadimos los Behaviours
 		// (protocolo-admision-comprador)
 		addBehaviour(new RequestAdmision());
-
-		// (protocolo-apertura-crédito)
-		addBehaviour(new AperturaCredito(this, MessageCreator.msgAperturaCredito(lonjaAgent, budget)));
-
-		// (protocolo-subasta)
-		initiator = new SuscripcionLineaVentas(this, MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, "1"));
-		addBehaviour(initiator);
 
 	}
 
@@ -210,6 +184,8 @@ public class BuyerAgent extends POAAgent {
 					if (reply.getPerformative() == ACLMessage.INFORM) {
 						// Registro exitoso
 						getLogger().info("RequestAdmisionComprador", "Register Succeed");
+						// (protocolo-apertura-crédito)
+						myAgent.addBehaviour(new AperturaCredito(myAgent, MessageCreator.msgAperturaCredito(lonjaAgent, budget)));
 					} else {
 						// Fallo en el registro
 						System.out.println(reply.getContent());
@@ -249,7 +225,10 @@ public class BuyerAgent extends POAAgent {
 		@Override
 		protected void handleInform(ACLMessage inform) {
 			lineaCreditoCreada = true;
-
+			// (protocolo-subasta)
+			initiator = new SuscripcionLineaVentas(myAgent, MessageCreator.msgSuscripcionLineaVentas(lonjaAgent, "1"));
+			myAgent.addBehaviour(initiator);
+			
 			getLogger().info("Apertura credito", "Se ha abierto correctamente la linea de credito");
 		}
 
