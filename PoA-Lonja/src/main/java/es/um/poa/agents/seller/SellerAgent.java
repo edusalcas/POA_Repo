@@ -11,8 +11,12 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.RefuseException;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -36,7 +40,6 @@ public class SellerAgent extends POAAgent {
 	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME); // Direccion de la lonja
 
 	private ArrayList<Lot> lots; // Lotes de los que dispone el vendedor
-	private float dinero; // Dinero ganado por el vendedor
 
 	// ---------------------------------//
 	// ------------Funciones------------//
@@ -65,8 +68,45 @@ public class SellerAgent extends POAAgent {
 
 		// Inicializar variables
 		lots = new ArrayList<Lot>();
-		dinero = 0.0f;
 
+		// Registramos al agente en las paginas amarillas
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType(this.getAID().getLocalName());
+		sd.setName("JADE-Lonja");
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		
+		
+		// Buscamos al agente Lonja
+		DFAgentDescription template = new DFAgentDescription();
+		sd = new ServiceDescription();
+		sd.setType("lonja");
+		template.addServices(sd);
+		try {
+			DFAgentDescription[] result = DFService.search(this, template);
+			while (result.length <= 0) {
+				try {
+					getLogger().info("Searching lonja", "Buscando al Agente Lonja");
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				result = DFService.search(this, template);
+			}
+			
+			lonjaAgent = result[0].getName();
+
+			
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		
 		// Añadimos los Behaviours
 		// (protocolo-registro-vendedor) El RAV recibe la petición de registro del RV
 		addBehaviour(new RequestRegistro());
@@ -227,7 +267,6 @@ public class SellerAgent extends POAAgent {
 			if (msg != null) {
 				// Request Message received. Process it.
 				ACLMessage reply = msg.createReply();
-				float precio = Float.parseFloat(msg.getContent());
 
 				// Comprobar si queremos aceptar el pago
 				Random rand = new Random();
@@ -236,8 +275,6 @@ public class SellerAgent extends POAAgent {
 					// Aceptamos el pago
 					reply.setPerformative(ACLMessage.INFORM);
 					getLogger().info("RecibirCobro", "Ha aceptado el cobro");
-					// Nos añadimos el dinero
-					dinero += precio;
 				} else {
 					// Rechazamos el pago
 					reply.setPerformative(ACLMessage.REFUSE);

@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -45,11 +44,10 @@ public class BuyerAgent extends POAAgent {
 
 	private float budget; // Cantidad de dinero disponible
 	private boolean lineaCreditoCreada; // La linea de credito se ha creado en la lonja
-	private int numLotesComprados; // Cantidad de lotes que se han comprado en la lonja
 	private List<Lot> lots; // Lotes que tiene el comprador
 	private List<Item> listaCompra; // Lista de los elementos que quiere comprar
 
-	private AID lonjaAgent = new AID("lonja", AID.ISLOCALNAME); // Referencia al agente lonja
+	private AID lonjaAgent; // Referencia al agente lonja
 	private SubscriptionInitiator initiator; // Behaviour encargado de la suscrpción a la linea de venta
 
 	// ---------------------------------//
@@ -114,7 +112,31 @@ public class BuyerAgent extends POAAgent {
 
 		// Inicializamos atributos
 		lots = new LinkedList<Lot>();
+		
+		// Buscamos al agente lonja
+		DFAgentDescription template = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("lonja");
+		template.addServices(sd);
+		try {
+			DFAgentDescription[] result = DFService.search(this, template);
+			while (result.length <= 0) {
+				try {
+					getLogger().info("Searching lonja", "Buscando al Agente Lonja");
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				result = DFService.search(this, template);
+			}
+			
+			lonjaAgent = result[0].getName();
 
+			
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+		
 		// Añadimos los Behaviours
 		// (protocolo-admision-comprador)
 		addBehaviour(new RequestAdmision());
@@ -408,7 +430,6 @@ public class BuyerAgent extends POAAgent {
 		@Override
 		protected void handleInform(ACLMessage inform) {
 			getLogger().info("Subasta lote: " + lote.getID(), "La lonja ha aceptado la puja por el paquete");
-			numLotesComprados++;
 
 			// Restamos la cantidad de producto obtenida
 			if (actualizarListaCompra(lote)) {

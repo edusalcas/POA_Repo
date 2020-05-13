@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -56,6 +55,8 @@ public class FishMarketAgent extends POAAgent {
 	private HashMap<Integer, Boolean> lineasAbiertas; // Indica si se ha iniciado una subasta en una linea de ventas
 	private List<AID> buyerAgents; // Agentes compradores
 	private List<Lot> lotsReserva; // Lotes que no se han vendido
+
+	private float ingresos_actuales = 0f;
 
 	private Manager subscriptionManager; // Manejador de las suscripciones por parte de los compradores a las lineas de
 											// venta
@@ -504,7 +505,7 @@ public class FishMarketAgent extends POAAgent {
 
 				int linea = Integer.parseInt(subscription.getContent());
 
-				if (!lineasAbiertas.get(linea) && lines.get(linea).size() > 0 && lineLots.get(linea).size() > 1)
+				if (!lineasAbiertas.get(linea) && lines.get(linea).size() > 0 && lineLots.get(linea).size() > 0)
 					iniciarLineaVenta(linea);
 
 			} else {
@@ -522,7 +523,7 @@ public class FishMarketAgent extends POAAgent {
 			// comprobaciones ya que estas se realizan ya aqui
 
 			for (Integer linea : lines.keySet()) { // Como no se puede estar suscrito a mas de una linea de
-													// vnta a la vez en cuento encontremos una subscripcion
+													// venta a la vez en cuanto encontremos una suscripcion
 													// a nombre del comprador que quiere cancelar la
 													// suscripcion sabremos que esa es la unica que hay y
 													// por lo tanto no es necesario revisar el resto de
@@ -644,6 +645,8 @@ public class FishMarketAgent extends POAAgent {
 						// Se actualiza la linea de credito del comprador
 						float lc = lineasCredito.get(sender);
 						lineasCredito.put(sender, lc - lote.getPrecio());
+						// Actualizamos nustros ingresos
+						ingresos_actuales += lote.getPrecio();
 						// Pagar al vendedor el precio de reserva
 						pagarVendedor(lote);
 						// Se responde con un inform al agente que ha realizado la puja
@@ -651,7 +654,9 @@ public class FishMarketAgent extends POAAgent {
 						response.setContent("OK");
 						response.setPerformative(ACLMessage.INFORM);
 						getAgent().send(response);
-
+						
+						getLogger().info("Ingresos actuales", "La lonja tiene unos ingresos totales de " + ingresos_actuales + " euros.");
+						
 						// Volvemos al primer paso
 						step = 0;
 
@@ -686,6 +691,7 @@ public class FishMarketAgent extends POAAgent {
 				}
 			} else {
 				cerrarLinea(lineaVentas);
+				getLogger().info("Ingresos actuales", "La lonja tiene unos ingresos totales de " + ingresos_actuales + " euros.");
 				step = 2;
 			}
 
@@ -738,9 +744,9 @@ public class FishMarketAgent extends POAAgent {
 				if (reply != null) {
 					// Acepta pago
 					if (reply.getPerformative() == ACLMessage.INFORM) {
-
+						ingresos_actuales -= dinero;
 					} else { // Rechaza pago
-
+						
 					}
 					step = 2;
 

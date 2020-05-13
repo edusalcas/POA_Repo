@@ -34,8 +34,8 @@ public class FishShipAgent extends POAAgent {
 	// ------------Variables------------//
 	// ---------------------------------//
 	private static final long serialVersionUID = 1L;
-	List<Lot> mercancia; // Mercancía que tiene el barco, parte de la cual se le entregara al vendedor
-	AID vendedor; // Vendedor, asociado al barco pesquero, que vendera la mercancia a la lonja
+	private List<Lot> mercancia; // Mercancía que tiene el barco, parte de la cual se le entregara al vendedor
+	private AID vendedor; // Vendedor, asociado al barco pesquero, que vendera la mercancia a la lonja
 
 	// ---------------------------------//
 	// ------------Funciones------------//
@@ -90,19 +90,31 @@ public class FishShipAgent extends POAAgent {
 
 		// Initialize variables
 		mercancia = config.getLots();
-		vendedor = new AID(config.getSeller(), AID.ISLOCALNAME);
-		// Register the fish-ship service in the yellow pages
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(getAID());
-		ServiceDescription sd = new ServiceDescription();
-		sd.setType("barco-pesquero");
-		sd.setName("JADE-Lonja");
-		dfd.addServices(sd);
-		try {
-			DFService.register(this, dfd);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
+		String vendedor_name = config.getSeller();
+		
+		// Buscamos al agente Vendedor asociado
+				DFAgentDescription template = new DFAgentDescription();
+				ServiceDescription sd = new ServiceDescription();
+				sd.setType(vendedor_name);
+				template.addServices(sd);
+				try {
+					DFAgentDescription[] result = DFService.search(this, template);
+					while (result.length <= 0) {
+						try {
+							getLogger().info("Searching seller", "Buscando al Agente Vendedor asociado");
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						result = DFService.search(this, template);
+					}
+					
+					vendedor = result[0].getName();
+
+					
+				} catch (FIPAException fe) {
+					fe.printStackTrace();
+				}
 
 		// Añadimos los Behaviours
 		// (protocolo-entrega-mercancia)
